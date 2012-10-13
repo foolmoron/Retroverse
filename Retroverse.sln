@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Retroverse", "Retroverse\Retroverse\Retroverse.csproj", "{12B855AA-2896-4009-9AE9-B88EB5AA392F}"
+EndProject
+Project("{96E2B04D-8817-42C6-938A-82C39BA4D311}") = "RetroverseContent", "Retroverse\RetroverseContent\RetroverseContent.contentproj", "{FC50C7C6-2D68-4BFF-845E-BFAC18A34A63}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LevelPipeline", "LevelPipeline\LevelPipeline.csproj", "{E1E3B3B8-50B9-47C4-A4DB-E9828BC2922B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{12B855AA-2896-4009-9AE9-B88EB5AA392F}.Debug|x86.ActiveCfg = Debug|x86
+		{12B855AA-2896-4009-9AE9-B88EB5AA392F}.Debug|x86.Build.0 = Debug|x86
+		{12B855AA-2896-4009-9AE9-B88EB5AA392F}.Release|x86.ActiveCfg = Release|x86
+		{12B855AA-2896-4009-9AE9-B88EB5AA392F}.Release|x86.Build.0 = Release|x86
+		{FC50C7C6-2D68-4BFF-845E-BFAC18A34A63}.Debug|x86.ActiveCfg = Debug|x86
+		{FC50C7C6-2D68-4BFF-845E-BFAC18A34A63}.Release|x86.ActiveCfg = Release|x86
+		{E1E3B3B8-50B9-47C4-A4DB-E9828BC2922B}.Debug|x86.ActiveCfg = Debug|x86
+		{E1E3B3B8-50B9-47C4-A4DB-E9828BC2922B}.Debug|x86.Build.0 = Debug|x86
+		{E1E3B3B8-50B9-47C4-A4DB-E9828BC2922B}.Release|x86.ActiveCfg = Debug|x86
+		{E1E3B3B8-50B9-47C4-A4DB-E9828BC2922B}.Release|x86.Build.0 = Debug|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
