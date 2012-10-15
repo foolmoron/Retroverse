@@ -118,6 +118,7 @@ namespace Retroverse
         {
             Vector2 offset = new Vector2(xPos * (LevelContent.LEVEL_SIZE * TILE_SIZE), yPos * (LevelContent.LEVEL_SIZE * TILE_SIZE));
             spriteBatch.Draw(getTexture(), new Vector2(xPos * Level.TEX_SIZE, yPos * Level.TEX_SIZE), null, Color.White, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1);
+            //History.DrawLevel(spriteBatch, xPos, yPos);
             foreach (Collectable c in collectables)
                 if (c != null)
                     c.Draw(spriteBatch);

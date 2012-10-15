@@ -94,6 +94,7 @@
     <Reference Include="System">
       <Private>False</Private>
     </Reference>
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml">
       <Private>False</Private>
     </Reference>
@@ -113,6 +114,7 @@
     <Compile Include="Collectable.cs" />
     <Compile Include="Controller.cs" />
     <Compile Include="Enemy.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="Graphical Effects\Effects.cs" />
     <Compile Include="Graphical Effects\Vignette.cs" />
     <Compile Include="History.cs" />

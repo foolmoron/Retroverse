@@ -15,9 +15,9 @@ namespace Retroverse
     {
         string baseTex;
 
-        bool animated = true;
-        int frame;
-        int framemax;
+        public bool animated = true;
+        public int frame;
+        public int framemax;
 
         int timeStep;
         int curTime;

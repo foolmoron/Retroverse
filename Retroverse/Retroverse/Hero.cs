@@ -99,10 +99,18 @@ namespace Retroverse
 
         public void special()
         {
-            if (History.canRevert() != null)
+            switch (Game1.state)
             {
-                History.revert();
-                Game1.levelManager.scrollMultiplier = 3f;
+                case GameState.Escape:
+                case GameState.Arena:
+                    if (History.canRevert())
+                    {
+                        Game1.state = GameState.RetroPort;
+                    }
+                    break;
+                case GameState.RetroPort:
+                    History.cancelRevert();
+                    break;
             }
         }
 
@@ -281,7 +289,7 @@ namespace Retroverse
 
         public override void Draw(SpriteBatch spriteBatch)
         {
-            History.Draw(spriteBatch);
+            History.DrawHero(spriteBatch);
             base.Draw(spriteBatch);
         }
     }

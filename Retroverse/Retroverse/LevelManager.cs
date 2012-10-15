@@ -192,7 +192,11 @@ namespace Retroverse
             return false;
         }
 
-        public void Update(GameTime gameTime)
+        public void UpdateArena(GameTime gameTime)
+        {
+        }
+
+        public void UpdateEscape(GameTime gameTime)
         {
             float seconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -239,7 +243,6 @@ namespace Retroverse
                     int y = Hero.instance.levelY + yi;
                     if (x < 0 || y < 0 || x >= MAX_LEVELS || y >= MAX_LEVELS || levels[x, y] == null)
                         continue;
-                    //DRAW LEVEL
                     levels[x, y].Update(gameTime);
                 }
             int curHeroLevelX = hero.levelX;
@@ -387,6 +390,26 @@ namespace Retroverse
             
         }
 
+        public void UpdateRetro(GameTime gameTime)
+        {
+            float seconds = gameTime.getSeconds();
+            targetPos = new Vector2(hero.position.X - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, hero.position.Y - zoom * (Level.TEX_SIZE / 2) - Game1.hudSize - Level.TILE_SIZE / 2);
+            if (targetPos.X - position.X > seconds * scrollSpeed)
+                position.X += scrollSpeed * seconds;
+            else if (targetPos.X - position.X < -seconds * scrollSpeed)
+                position.X -= scrollSpeed * seconds;
+            else
+                position.X = targetPos.X;
+            if (targetPos.Y - position.Y > seconds * scrollSpeed)
+                position.Y += scrollSpeed * seconds;
+            else if (targetPos.Y - position.Y < -seconds * scrollSpeed)
+                position.Y -= scrollSpeed * seconds;
+            else
+                position.Y = targetPos.Y;
+            if (position == targetPos)
+                scrollMultiplier = 1f;
+        }
+
         public void Draw(SpriteBatch spriteBatch)
         {
             for (int xi = -1; xi <= 1; xi++)
@@ -399,6 +422,7 @@ namespace Retroverse
                     //DRAW LEVEL
                     levels[x, y].Draw(spriteBatch);
                 }
+            History.DrawEnemies(spriteBatch);
 
             foreach (Bullet b in Hero.instance.ammo)
             {

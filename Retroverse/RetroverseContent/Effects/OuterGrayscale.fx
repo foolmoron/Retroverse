@@ -5,12 +5,12 @@ float intensity;
 texture2D Texture;
 sampler2D TextureSampler = sampler_state
 {
-    Texture = <Texture>;
+	Texture = <Texture>;
 };
 
 struct PixelShaderInput
 {
-    float2 TexCoord : TEXCOORD0;
+	float2 TexCoord : TEXCOORD0;
 };
 
 float weightR = 0.30;
@@ -38,9 +38,11 @@ float4 PixelShaderFunction(PixelShaderInput input) : COLOR0
 		float luminance = dot(original.rgb,  float3(weightR, weightG, weightB));
 		float3 gray = (luminance > 0.5f) ? (luminance + 1) / 2 : luminance / 2;
 		float perc = pow((dist2 / corner2), 1/intensity);
+		perc += 0.5;
 		if (perc > 1)
 			perc = 1;
-		color = (gray * (perc)) + (original.rgb * (1-perc));
+		color = (gray * (perc));
+		// + (original.rgb * (1-perc));
 	}
 
 	return float4(color, original.a);
@@ -48,8 +50,8 @@ float4 PixelShaderFunction(PixelShaderInput input) : COLOR0
 
 technique Technique1
 {
-    pass Pass1
-    {
-        PixelShader = compile ps_2_0 PixelShaderFunction();
-    }
+	pass Pass1
+	{
+		PixelShader = compile ps_2_0 PixelShaderFunction();
+	}
 }

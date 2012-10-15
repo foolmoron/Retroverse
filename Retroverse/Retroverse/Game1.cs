@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.GamerServices;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
 using LevelPipeline;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Media;
+using System.Windows.Forms;
 
 namespace Retroverse
 {
@@ -16,13 +13,18 @@ namespace Retroverse
 
     public class Game1 : Microsoft.Xna.Framework.Game
     {
+#if DEBUG
         public static readonly bool DEBUG = true;
+#else
+        public static readonly bool DEBUG = false;
+#endif
 
         public static Random rand = new Random();
         public GraphicsDeviceManager graphics;
         public SpriteBatch spriteBatch;
         public SpriteBatch spriteBatchHUD;
         public RenderTarget2D shaderRenderTarget;
+        public static Effect currentEffect = null;
 
         //DRAW OPTIONS
         public static bool drawLevelTextures =  true; // draw colored squares that back the levels
@@ -40,11 +42,9 @@ namespace Retroverse
         public static Texture2D PIXEL;
         public static SpriteFont FONT_DEBUG;
         public static Viewport viewport;
+        public static GameState state;
         public static GraphicsDevice graphicsDevice;
         public static Dictionary<string, Level> levelTemplates = new Dictionary<string, Level>();
-
-        // history stuff
-        public static readonly float RETROPORT_SECS = 3f;
 
         public double framerate;
         public double frameTimeCounter;
@@ -72,34 +72,54 @@ namespace Retroverse
             this.Window.AllowUserResizing = true;
             this.Window.ClientSizeChanged += new EventHandler<EventArgs>(resizeWindow);
             TargetElapsedTime = new TimeSpan(10000000L / 60L); // target fps
+            state = GameState.Escape;
         }
 
         void resizeWindow(object sender, EventArgs e)
         {
             Window.ClientSizeChanged -= new EventHandler<EventArgs>(resizeWindow);
 
-            if (Window.ClientBounds.Width != screenSize.X)
+            int desiredWidth = Window.ClientBounds.Width;
+            int desiredHeight = Window.ClientBounds.Height;
+
+            Form form = (Form)Form.FromHandle(Window.Handle);
+            switch (form.WindowState)
             {
-                graphics.PreferredBackBufferWidth = Window.ClientBounds.Width;
-                graphics.PreferredBackBufferHeight = (int)(Window.ClientBounds.Width / ASPECTRATIO);
+                case FormWindowState.Maximized:
+                    desiredHeight = SCREEN_SIZE_MAX_HEIGHT;
+                    desiredWidth = (int)(desiredHeight * ASPECTRATIO);
+                    break;
+                case FormWindowState.Minimized:
+                    desiredHeight = SCREEN_SIZE_MIN_HEIGHT;
+                    desiredWidth = (int)(desiredHeight * ASPECTRATIO);
+                    break;
             }
-            else if (Window.ClientBounds.Height != screenSize.Y)
+            form.WindowState = FormWindowState.Normal;
+
+            if (desiredWidth != screenSize.X)
             {
-                graphics.PreferredBackBufferWidth = (int)(Window.ClientBounds.Height * ASPECTRATIO);
-                graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
+                graphics.PreferredBackBufferWidth = desiredWidth;
+                graphics.PreferredBackBufferHeight = (int)(desiredWidth / ASPECTRATIO);
+            }
+            else if (desiredHeight != screenSize.Y)
+            {
+                graphics.PreferredBackBufferWidth = (int)(desiredHeight * ASPECTRATIO);
+                graphics.PreferredBackBufferHeight = desiredHeight;
             }
             //limit window size
             graphics.PreferredBackBufferHeight = (int)MathHelper.Clamp(graphics.PreferredBackBufferHeight, SCREEN_SIZE_MIN_HEIGHT, SCREEN_SIZE_MAX_HEIGHT);
             graphics.PreferredBackBufferWidth = (int)(graphics.PreferredBackBufferHeight * ASPECTRATIO);
 
             graphics.ApplyChanges();
-            screenSize = new Vector2(Window.ClientBounds.Width, Window.ClientBounds.Height);
-            hudSize = Window.ClientBounds.Height - Window.ClientBounds.Width;
+            screenSize = new Vector2(desiredWidth, desiredHeight);
+            hudSize = desiredHeight - desiredWidth;
             viewport = GraphicsDevice.Viewport;
 
             //new shaderRenderTarget
             shaderRenderTarget = new RenderTarget2D(GraphicsDevice, GraphicsDevice.PresentationParameters.BackBufferWidth,
                 GraphicsDevice.PresentationParameters.BackBufferHeight, false, SurfaceFormat.Color, DepthFormat.None);
+
+            History.setEffectRadiusMax();
 
             Window.ClientSizeChanged += new EventHandler<EventArgs>(resizeWindow);
         }
@@ -120,6 +140,8 @@ namespace Retroverse
             PIXEL = new Texture2D(graphics.GraphicsDevice, 1, 1);
             PIXEL.SetData(new[] { Color.White });
             viewport = GraphicsDevice.Viewport;
+
+            History.setEffectRadiusMax();
 
             base.Initialize();
             //levelManager.initializeEnemies();
@@ -191,9 +213,30 @@ namespace Retroverse
         {
             float seconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
+            currentEffect = null;
+            drawEffects = false;
             Controller.Update(gameTime);
-            levelManager.Update(gameTime);
-            History.Update(gameTime);
+            switch (state)
+            {
+                case GameState.Arena:
+                    levelManager.UpdateArena(gameTime);
+                    History.UpdateArena(gameTime);
+                    break;
+                case GameState.Escape:
+                    levelManager.UpdateEscape(gameTime);
+                    History.UpdateEscape(gameTime);
+                    //drawEffects = true;
+                    //currentEffect = Effects.OuterGrayscale;
+                    //Game1.currentEffect.Parameters["width"].SetValue(Game1.screenSize.X);
+                    //Game1.currentEffect.Parameters["height"].SetValue(Game1.screenSize.Y);
+                    //Game1.currentEffect.Parameters["radius"].SetValue(0);
+                    //Game1.currentEffect.Parameters["intensity"].SetValue(2f);
+                    break;
+                case GameState.RetroPort:
+                    History.UpdateRetro(gameTime);
+                    levelManager.UpdateRetro(gameTime);
+                    break;
+            }
 
             frameTimeCounter += gameTime.ElapsedGameTime.TotalMilliseconds;
             if (frameTimeCounter >= 1000d)
@@ -210,7 +253,6 @@ namespace Retroverse
             effectRadius += EFFECT_RADIUS_SPEED * effectRadiusMultiplier * seconds;
             if (effectRadius < EFFECT_RADIUS_MIN || effectRadius > EFFECT_RADIUS_MAX)
             {
-                outer = !outer;
                 effectRadiusMultiplier *= -1;
             }
 
@@ -227,7 +269,6 @@ namespace Retroverse
         /// This is called when the game should draw itself.
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        bool outer;
         protected override void Draw(GameTime gameTime)
         {
             frameCounter++;
@@ -247,34 +288,24 @@ namespace Retroverse
 
             // Switch back to drawing onto the back buffer
             GraphicsDevice.SetRenderTarget(null);
-            //spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.LinearClamp,
-            //    DepthStencilState.None, RasterizerState.CullCounterClockwise,
-            //    null, Matrix.Identity);
-            //spriteBatch.Draw(shaderRenderTarget, Vector2.Zero, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
-            //spriteBatch.End();
             // Post-processing effects
-            Effect effect = null;
             if (drawEffects)
             {
-                if (outer)
-                    effect = Effects.OuterGrayscale;
-                else
-                    effect = Effects.Grayscale;
-                effect.Parameters["width"].SetValue(screenSize.X);
-                effect.Parameters["height"].SetValue(screenSize.Y);
-                effect.Parameters["radius"].SetValue(effectRadius);
-                effect.Parameters["intensity"].SetValue(5f);
+                if (currentEffect == null)
+                {
+                    throw new Exception("Make sure the currentEffect field is set explicitly in the update of every frame that you want the effect in");
+                }
             }
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.LinearClamp,
                 DepthStencilState.None, RasterizerState.CullCounterClockwise,
-                effect, Matrix.Identity);
+                currentEffect, Matrix.Identity);
             spriteBatch.Draw(shaderRenderTarget, Vector2.Zero, null, Color.White, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
             spriteBatch.End();
 
             // Draw on HUD/UI area using spriteBatchHUD
             spriteBatchHUD.Begin(SpriteSortMode.Immediate, BlendState.NonPremultiplied);
 
-            spriteBatchHUD.DrawString(FONT_DEBUG, "WASD to move\nQ and E to zoom/unzoom\nShift to toggle scrolling\nSpace to shoot\nX to rewind time\nAlt for rave party\nNumber of Collectables gotten:\n" + levelManager.collectablesToRemove.Count + "\nHero pos:" + Hero.instance.position, new Vector2(15, 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+            spriteBatchHUD.DrawString(FONT_DEBUG, "WASD to move\nQ and E to zoom/unzoom\nShift to toggle scrolling\nSpace to shoot\nX to rewind time\nAlt for rave party\nNumber of Collectables gotten:\n" + levelManager.collectablesToRemove.Count + "\nRetroVel: " + History.frameVelocity, new Vector2(15, 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             spriteBatchHUD.DrawString(FONT_DEBUG, "FPS: " + framerate.ToString("00.0"), new Vector2(screenSize.X - 120, 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             spriteBatchHUD.Draw(PIXEL, new Rectangle(0, 0, (int)screenSize.X, 25), Color.Navy);
 

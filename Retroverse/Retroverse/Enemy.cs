@@ -17,7 +17,6 @@ namespace Retroverse
         public static LevelContent.LevelTile[,] original = new LevelContent.LevelTile[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
         public int[,] grid = new int[LevelContent.LEVEL_SIZE,LevelContent.LEVEL_SIZE];
         public Vector2 roundPosition;
-        public Direction direction;
         public int[] pqCorrection = new int[2000];
         private readonly Dictionary<Vector2,Direction> VECTOR_TO_DIR = new Dictionary< Vector2,Direction>(){
             {Vector2.Zero,Direction.None},

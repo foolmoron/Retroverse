@@ -46,6 +46,11 @@ namespace Retroverse
             position = v;
         }
 
+        public int getTextureFrame()
+        {
+            return texture.frame;
+        }
+
         public virtual Texture2D getTexture()
         {
             return texture.getTexture();
@@ -94,6 +99,15 @@ namespace Retroverse
         public float getTransformedScale()
         {
             return getBottom().Y / Game1.screenSize.Y;
+        }
+
+        public void setTextureFrame(int frame)
+        {
+            if (!texture.animated)
+                return;
+            if (frame < 1 || frame > texture.framemax)
+                throw new ArgumentOutOfRangeException("frame", "Frame needs to be between 1 and framemax");
+            texture.frame = frame;
         }
 
         public void setTexture(string tex)
