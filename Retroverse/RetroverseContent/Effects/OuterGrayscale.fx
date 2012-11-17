@@ -2,6 +2,8 @@ float width;
 float height;
 float radius;
 float intensity;
+float zoom;
+float2 center;
 texture2D Texture;
 sampler2D TextureSampler = sampler_state
 {
@@ -21,28 +23,39 @@ float4 PixelShaderFunction(PixelShaderInput input) : COLOR0
 {
 	float3 color;
 	float4 original = tex2D(TextureSampler, input.TexCoord);
-	float hPixel = 1.0f / width;
-	float vPixel = 1.0f / height;
 
-	float rad2 = pow(radius, 2);
-	float dist2 = pow((input.TexCoord.x * width) - width/2, 2) + pow((input.TexCoord.y * height)- height/2, 2);
+	float rad2 = pow(radius / zoom, 2);
+	float dist2 = pow((input.TexCoord.x - center.x) * width, 2) + pow((input.TexCoord.y - center.y) * height, 2);
 	
 	if (dist2 < rad2)
 	{
-		return original;
+		float corner2 = pow(width/2, 2) + pow(height/2, 2) - rad2;		
+		float luminance = dot(original.rgb,  float3(weightR, weightG, weightB));
+		float3 gray = (luminance > 0.5f) ? (luminance + 1) / 2 : luminance / 2;
+		float percorig = (dist2 / rad2) * intensity;
+		percorig = percorig * percorig;
+		if (percorig > 1)
+			percorig = 1;
+		if (percorig < 0)
+			percorig = 0;
+		color = (gray * (percorig)) + (original.rgb * (1-percorig));
 	}
 	else
 	{
-		dist2 = dist2 - rad2;
-		float corner2 = (pow(width/2, 2) + pow(height/2, 2) - rad2)/2;
 		float luminance = dot(original.rgb,  float3(weightR, weightG, weightB));
 		float3 gray = (luminance > 0.5f) ? (luminance + 1) / 2 : luminance / 2;
-		float perc = pow((dist2 / corner2), 1/intensity);
-		perc += 0.5;
-		if (perc > 1)
-			perc = 1;
-		color = (gray * (perc));
-		// + (original.rgb * (1-perc));
+		color = gray;
+		//dist2 = dist2 - rad2;
+		//float corner2 = pow(width/2, 2) + pow(height/2, 2) - rad2;		
+		//float luminance = dot(original.rgb,  float3(weightR, weightG, weightB));
+		//float3 gray = (luminance > 0.5f) ? (luminance + 1) / 2 : luminance / 2;
+		//float percorig = (dist2 / corner2) * intensity;
+		//percorig = percorig * percorig;
+		//if (percorig > 1)
+		//	percorig = 1;
+		//if (percorig < 0)
+		//	percorig = 0;
+		//color = (gray * (percorig)) + (original.rgb * (1-percorig));
 	}
 
 	return float4(color, original.a);

@@ -28,6 +28,16 @@ namespace Retroverse
             catch (ArgumentException e) { }
         }
 
+        public static void Add(string key, int frames)
+        {
+            try
+            {
+                for (int i = 0; i < frames; i++)
+                    textures.Add(key + (i + 1), content.Load<Texture2D>("Sprites/" + key + (i + 1)));
+            }
+            catch (ArgumentException e) { }
+        }
+
         public static void SetContent(ContentManager _content)
         {
             if (content != null)

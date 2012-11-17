@@ -20,6 +20,7 @@ namespace Retroverse
 
         public Hitbox hitbox;
         protected AnimatedTexture texture;
+        protected Color maskingColor = Color.White;
         public float scale = 1;
         public float alpha = 1;
         public float rotation = 0;
@@ -53,6 +54,8 @@ namespace Retroverse
 
         public virtual Texture2D getTexture()
         {
+            if (texture == null)
+                return null;
             return texture.getTexture();
         }
 
@@ -148,7 +151,8 @@ namespace Retroverse
         {
             if (!active)
                 return;
-            texture.Update(gameTime, this);
+            if (texture != null)
+                texture.Update(gameTime, this);
             hitbox.Update(this);
         }
 
@@ -159,7 +163,7 @@ namespace Retroverse
             Texture2D tex = getTexture();
             if (tex == null)
                 return;
-            spriteBatch.Draw(tex, position, null, Color.White, rotation, new Vector2(getTexture().Width / 2, getTexture().Height / 2), scale, getFlip(), layer);
+            spriteBatch.Draw(tex, position, null, maskingColor, rotation, new Vector2(getTexture().Width / 2, getTexture().Height / 2), scale, getFlip(), layer);
         }
         public virtual void DrawDebug(SpriteBatch spriteBatch)
         {

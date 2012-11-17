@@ -8,9 +8,15 @@ namespace Retroverse
 {
     public static class Extensions
     {
-        public static float getSeconds(this GameTime gameTime)
+        public static float getSeconds(this GameTime gameTime, float timeScale = -1f)
         {
-            return (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (Game1.retroStatisActive)
+            {
+                if (timeScale < 0)
+                    timeScale = Game1.timeScale;
+                return (float)gameTime.ElapsedGameTime.TotalSeconds * timeScale;
+            } else
+                return (float)gameTime.ElapsedGameTime.TotalSeconds;
         }
     }
 }

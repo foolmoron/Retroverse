@@ -29,6 +29,7 @@ namespace Retroverse
             get { return DIR_TO_VECTOR[direction]; }
             private set { }
         }
+
         private static readonly Dictionary<Direction, Vector2> DIR_TO_VECTOR = new Dictionary<Direction, Vector2>(){
             {Direction.None, Vector2.Zero},
             {Direction.Up, new Vector2(0, -1)},
@@ -37,13 +38,23 @@ namespace Retroverse
             {Direction.Right, new Vector2(1, 0)},
         };
 
+        private static readonly Keys[] WASD = new Keys[] { Keys.W, Keys.A, Keys.S, Keys.D };
+        private static readonly Dictionary<Keys, double> LAST_TIME_KEY_WAS_PRESSED = new Dictionary<Keys, double>()
+        {
+            {Keys.W, -1},
+            {Keys.A, -1},
+            {Keys.S, -1},
+            {Keys.D, -1},
+        };
+
         public static readonly Dictionary<Buttons, Action<bool>> gamepadButtons = new Dictionary<Buttons, Action<bool>>()
         {
             {Buttons.A, action1},
             {Buttons.B, action2},
             {Buttons.RightShoulder, action3},
-            {Buttons.X, action4},
-            {Buttons.Y, action4}
+            {Buttons.X, action5},
+            {Buttons.Y, action4},
+            {Buttons.Start, startButton},
         };
         public static readonly Dictionary<Keys, Action<bool>> keyboardButtons = new Dictionary<Keys, Action<bool>>()
         {
@@ -51,9 +62,12 @@ namespace Retroverse
             {Keys.LeftShift, action2},
             {Keys.LeftControl, action3},
             {Keys.LeftAlt, action4},
+            {Keys.Enter, startButton},
+            {Keys.Escape, startButton},
             {Keys.Z, action4},
             {Keys.X, action5},
             {Keys.C, action6},
+            {Keys.J, action7},
         };
 
         public static void Update(GameTime gameTime)
@@ -108,14 +122,54 @@ namespace Retroverse
                 direction = Direction.Left;
             else if (statePad.IsButtonDown(Buttons.DPadRight))
                 direction = Direction.Right;
-            if (stateKey.IsKeyDown(Keys.W)) //WASD block
-                direction = Direction.Up;
-            else if (stateKey.IsKeyDown(Keys.S))
-                direction = Direction.Down;
-            else if (stateKey.IsKeyDown(Keys.A))
-                direction = Direction.Left;
-            else if (stateKey.IsKeyDown(Keys.D))
-                direction = Direction.Right;
+            double currentTime = gameTime.TotalGameTime.TotalMilliseconds; //WASD block
+            foreach (Keys k in WASD)
+            {
+                if (stateKey.IsKeyDown(k))
+                {
+                    if (LAST_TIME_KEY_WAS_PRESSED[k] < 0)
+                        LAST_TIME_KEY_WAS_PRESSED[k] = currentTime;
+                }
+                else
+                {
+                    LAST_TIME_KEY_WAS_PRESSED[k] = -1;
+                }
+            }
+            KeyValuePair<Keys, double> lastPressedKeyPair = new KeyValuePair<Keys,double>(Keys.Escape, -1);
+            foreach (KeyValuePair<Keys, double> pair in LAST_TIME_KEY_WAS_PRESSED)
+            {
+                if (pair.Value > lastPressedKeyPair.Value)
+                    lastPressedKeyPair = pair;
+            }
+            switch (lastPressedKeyPair.Key)
+            {
+                case Keys.W:
+                    direction = Direction.Up;
+                    break;
+                case Keys.A:
+                    direction = Direction.Left;
+                    break;
+                case Keys.S:
+                    direction = Direction.Down;
+                    break;
+                case Keys.D:
+                    direction = Direction.Right;
+                    break;
+            }
+
+            // debug powerup options
+            if (pressed(Keys.Y))
+                Hero.instance.powerUp1 = (Hero.instance.powerUp1 + 1) % 3;
+            else if (pressed(Keys.U))
+                Hero.instance.powerUp2 = (Hero.instance.powerUp2 + 1) % 3;
+            else if (pressed(Keys.I))
+                Hero.instance.powerUp3 = (Hero.instance.powerUp3 + 1) % 4;
+            else if (pressed(Keys.O))
+                Hero.instance.powerUp4 = (Hero.instance.powerUp4 + 1) % 3;
+            else if (pressed(Keys.P))
+                Hero.instance.powerUp5 = (Hero.instance.powerUp5 + 1) % 2;
+            else if (pressed(Keys.L))
+                Game1.setScreenSize((ScreenSize)Enum.ToObject(typeof(ScreenSize), ((int)Game1.currentScreenSizeMode + 1) % 4));
 
             prevStateKey = stateKey;
             prevStatePad = statePad;
@@ -151,54 +205,63 @@ namespace Retroverse
             return prevStatePad.IsButtonDown(button) && !statePad.IsButtonDown(button);
         }
 
-        public static void action1(bool pressed) //space, A
+        public static void startButton(bool pressedDownThisFrame) //enter, start
         {
-            if (pressed)
+            if (pressedDownThisFrame)
+                Game1.startButton();
+        }
+
+        public static void action1(bool pressedDownThisFrame) //space, A
+        {
+            if (pressedDownThisFrame)
                     Hero.instance.spaceOrA();
             Hero.instance.fire();
         }
 
-        public static void action2(bool pressed) //shift, B
+        public static void action2(bool pressedDownThisFrame) //shift, B
         {
-            if (pressed)
+            if (pressedDownThisFrame)
             {
                 Hero.instance.shiftOrB();
-                Game1.levelManager.scrolling = !Game1.levelManager.scrolling;
             }
+            Hero.instance.burst();  
         }
 
-        public static void action3(bool pressed) //ctrl, RB
+        public static void action3(bool pressedDownThisFrame) //ctrl, RB
         {
-            if (pressed)
+            if (pressedDownThisFrame)
             {
                 Hero.instance.ctrlOrRB();
             }
         }
 
-        public static void action4(bool pressed) //alt, X, Y
+        public static void action4(bool pressedDownThisFrame) //alt, X, Y
         {
-            if (pressed)
+            if (pressedDownThisFrame)
             {
                 Hero.instance.altOrXY();
-                Game1.drawVignette = !Game1.drawVignette;
-                Game1.drawEffects = !Game1.drawEffects;
             }
         }
 
-        public static void action5(bool pressed)
+        public static void action5(bool pressedDownThisFrame)
         {
-            if (pressed)
+            if (pressedDownThisFrame)
             {
-                Hero.instance.special();
+                Hero.instance.activateRetro();
             }
         }
 
-        public static void action6(bool pressed)
+        public static void action6(bool pressedDownThisFrame)
         {
-            if (pressed)
+            if (pressedDownThisFrame)
             {
                 Hero.instance.special2();
             }
+        }
+
+        public static void action7(bool pressedDownThisFrame)
+        {
+            Hero.instance.burst();            
         }
     }
 }

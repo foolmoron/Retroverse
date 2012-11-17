@@ -40,6 +40,7 @@ namespace Retroverse
         public AnimatedTexture(string _base, int numframes, int _timeStep)
         {
             baseTex = _base;
+            animated = true;
             framemax = numframes;
             onFrameActions = new Action[numframes];
             onFrameHitboxes = new Hitbox[numframes];
@@ -58,7 +59,7 @@ namespace Retroverse
 
         public string get()
         {
-            if (animated) return baseTex + " " + frame;
+            if (animated) return baseTex + "" + frame;
             else return baseTex;
         }
 
@@ -112,14 +113,19 @@ namespace Retroverse
             frame++;
         }
 
-        public void Update(GameTime gameTime, Entity owner)
+        public void Update(GameTime gameTime)
         {
             curTime += (gameTime != null) ? gameTime.ElapsedGameTime.Milliseconds : 0;
             if (curTime > timeStep)
             {
                 increment();
-                curTime = 0; 
+                curTime = 0;
             }
+        }
+
+        public void Update(GameTime gameTime, Entity owner)
+        {
+            Update(gameTime);
             if (frame > 0 && getHitbox() != null)
             {
                 getHitbox().active = true;

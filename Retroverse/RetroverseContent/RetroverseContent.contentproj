@@ -42,45 +42,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Levels\2.png">
-      <Name>2</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\LevelPipeline\LevelPipeline.csproj">
       <Project>{E1E3B3B8-50B9-47C4-A4DB-E9828BC2922B}</Project>
       <Name>LevelPipeline</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Levels\1.png">
-      <Name>1</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Levels\3.png">
-      <Name>3</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Levels\4.png">
-      <Name>4</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Levels\5.png">
-      <Name>5</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Fonts\debug.spritefont">
@@ -91,13 +56,46 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Sprites\collectable.png">
-      <Name>collectable</Name>
+    <Compile Include="Levels\3.png">
+      <Name>3</Name>
       <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
+      <Processor>LevelProcessor</Processor>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
+    <Compile Include="Levels\5.png">
+      <Name>5</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\8.png">
+      <Name>8</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\intro.png">
+      <Name>intro</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel1.png">
+      <Name>rachel1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel2.png">
+      <Name>rachel2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel3.png">
+      <Name>rachel3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel4.png">
+      <Name>rachel4</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
     <Compile Include="Sprites\hero.png">
       <Name>hero</Name>
       <Importer>TextureImporter</Importer>
@@ -110,32 +108,8 @@
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
-    <Compile Include="Textures\floortest.png">
-      <Name>floortest</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
     <Compile Include="Textures\wall1.png">
       <Name>wall1</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
-    <Compile Include="Textures\walltest.png">
-      <Name>walltest</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Sprites\enemy.png">
-      <Name>enemy</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Sprites\bullet.png">
-      <Name>bullet</Name>
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
@@ -162,20 +136,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Sprites\enemy_test.png">
-      <Name>enemy_test</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Sprites\enemy_test_with_transparency.png">
-      <Name>enemy_test_with_transparency</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="Sprites\BootPower.png">
       <Name>BootPower</Name>
       <Importer>TextureImporter</Importer>
@@ -199,6 +159,228 @@
       <Name>Test</Name>
       <Importer>EffectImporter</Importer>
       <Processor>EffectProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Sprites\fairyglow1.png">
+      <Name>fairyglow1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\fairyglow2.png">
+      <Name>fairyglow2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\fairyglow3.png">
+      <Name>fairyglow3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\fairyglow4.png">
+      <Name>fairyglow4</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Sprites\circle.png">
+      <Name>circle</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Fonts\pixel12.bmp">
+      <Name>pixel12</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel14.bmp">
+      <Name>pixel14</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel18.bmp">
+      <Name>pixel18</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel23.bmp">
+      <Name>pixel23</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel24.bmp">
+      <Name>pixel24</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel28.bmp">
+      <Name>pixel28</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel32.bmp">
+      <Name>pixel32</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel36.bmp">
+      <Name>pixel36</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\pixel48.bmp">
+      <Name>pixel48</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Content Include="nameprefixes.txt">
+      <Name>nameprefixes</Name>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="namesuffixes.txt">
+      <Name>namesuffixes</Name>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Sprites\bullet1.png">
+      <Name>bullet1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\bullet2.png">
+      <Name>bullet2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\chargebullet1.png">
+      <Name>chargebullet1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\chargebullet2.png">
+      <Name>chargebullet2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\chargebullet3.png">
+      <Name>chargebullet3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\enemy1.png">
+      <Name>enemy1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\enemy2.png">
+      <Name>enemy2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\enemy3.png">
+      <Name>enemy3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\enemy4.png">
+      <Name>enemy4</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\sandicon.png">
+      <Name>sandicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\boosticon.png">
+      <Name>boosticon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\gunicon.png">
+      <Name>gunicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\radaricon.png">
+      <Name>radaricon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\drillicon.png">
+      <Name>drillicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\collectable1.png">
+      <Name>collectable1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\retroicon1.png">
+      <Name>retroicon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\retroicon2.png">
+      <Name>retroicon2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\retroicon.png">
+      <Name>retroicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\chargeshoticon1.png">
+      <Name>chargeshoticon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\drillicon1.png">
+      <Name>drillicon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\drillicon2.png">
+      <Name>drillicon2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\forwardshoticon1.png">
+      <Name>forwardshoticon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\sideshoticon1.png">
+      <Name>sideshoticon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\riotguard1.png">
+      <Name>riotguard1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\prisoner1.png">
+      <Name>prisoner1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\prisonerhat1.png">
+      <Name>prisonerhat1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Fonts\exclamation.spritefont">
+      <SubType>Designer</SubType>
+      <Name>exclamation</Name>
+      <Importer>FontDescriptionImporter</Importer>
+      <Processor>FontDescriptionProcessor</Processor>
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\XNA Game Studio\$(XnaFrameworkVersion)\Microsoft.Xna.GameStudio.ContentPipeline.targets" />

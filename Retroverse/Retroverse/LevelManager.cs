@@ -6,26 +6,29 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using LevelPipeline;
+using Particles;
 
 namespace Retroverse
 {
     public class LevelManager
     {
-        public static readonly int MAX_LEVELS = 6;
-        public static readonly Vector2 STARTING_LEVEL = new Vector2(0, 0);
+        public static readonly int MAX_LEVELS = 500;
+        public static readonly Point STARTING_LEVEL = new Point(1, MAX_LEVELS / 2);
+        public static readonly Point STARTING_TILE = new Point(15, 15);
         public static float SCREENWIDTH_MIN = 800;
         public static float SCREENWIDTH_MAX = 1333;
         public float screenWidth;
         public static float SCREENHEIGHT_MIN = 480;
         public static float SCREENHEIGHT_MAX = 800;
         public float screenHeight;
+        public Vector2 center;
 
         public float zoom;
         public bool scrolling = false;
 
         public Vector2 position;
         public Vector2 targetPos;
-        public static readonly float SCROLL_SPEED_DEFAULT = Hero.MOVE_SPEED * 1.20f;
+        public static readonly float SCROLL_SPEED_DEFAULT = Hero.MOVE_SPEED * 2f;
         public float scrollSpeed = SCROLL_SPEED_DEFAULT;
         public float scrollMultiplier = 1f;
         public Vector2 acceleration;
@@ -34,8 +37,28 @@ namespace Retroverse
         public bool heroLevelChanged = false;
         public Level[,] levels = new Level[MAX_LEVELS, MAX_LEVELS];
 
+        // intro "cutscene" values
+        public static bool introFinished;
+        public static readonly float INTRO_INITIAL_ZOOM = 0.2f;
+        public static readonly float INTRO_FINAL_ZOOM = 1f;
+        public static readonly float INTRO_ZOOM_VELOCITY = 0.15f;
+        public static readonly int[][] INTRO_WALLS_TO_CRUMBLE = new int[][] {
+            new int[] { 16, 15 },
+            new int[] { 16, 16 },
+            new int[] { 16, 14 },
+            new int[] { 15, 14 },
+            new int[] { 15, 16 },
+            new int[] { 14, 15 },
+            new int[] { 14, 16 },
+            new int[] { 14, 14 },
+        };
+        public static Emitter[] INTRO_WALLS_EMITTERS = new Emitter[8];
+
+        // intro arena random collectable spawn values
         public static float collectableElapsedTime = 0;
-        public static readonly float COLLECTABLE_SPAWN_TIME = 1;
+        public static readonly float COLLECTABLE_SPAWN_TIME = 1f;
+        public static readonly int COLLECTABLES_MAX_AT_ONCE = 12;
+        public static int numCollectablesCurrentlyOnScreen = 0;
 
         // radar values
         public static int RADAR_BORDER_WIDTH = 2;
@@ -45,6 +68,7 @@ namespace Retroverse
         // entities to remove on next frame
         public List<Collectable> collectablesToRemove = new List<Collectable>();
         public List<Bullet> bulletsToRemove = new List<Bullet>();
+        public List<Enemy> enemiesToRemove = new List<Enemy>();
 
         public LevelManager()
         {
@@ -61,20 +85,34 @@ namespace Retroverse
                 throw new ArgumentOutOfRangeException("xPos,yPos", "Position of level (" + xPos + ", " + yPos + ") is out of range.");
             }
             levels[xPos, yPos] = new Level(l, xPos, yPos);
-           
+
         }
-        public Enemy addEnemy(int x, int y, int type,Level l)
+
+        public void removeLevel(int xPos, int yPos)
         {
-            return new Enemy(x,y,type,l);
+            if (levels[xPos, yPos] != null)
+                levels[xPos, yPos].alive = false;
+            levels[xPos, yPos] = null;
         }
+
+        public Enemy addEnemy(int x, int y, int type, Level l)
+        {
+            return new Enemy(x, y, type, l);
+        }
+
+        public Prisoner addPrisoner(int x, int y, Color c, Level l)
+        {
+            return new Prisoner(c, Names.getRandomName(), l.xPos * Level.TEX_SIZE + x * Level.TILE_SIZE + Level.TILE_SIZE / 2, l.yPos * Level.TEX_SIZE + y * Level.TILE_SIZE + Level.TILE_SIZE / 2, l.xPos, l.yPos, x, y);
+        }
+
         public Matrix getTranslation()
         {
-            return Matrix.CreateTranslation(new Vector3(-position.X + 16, -(position.Y + Game1.hudSize) + 16, 0));
+            return Matrix.CreateTranslation(new Vector3(-position.X + Level.TILE_SIZE / 2, -(position.Y) + Level.TILE_SIZE / 2, 0));
         }
 
         public Matrix getScale()
         {
-            return Matrix.CreateScale(new Vector3(Game1.viewport.Width / (zoom * Level.TEX_SIZE), Game1.viewport.Height / (zoom * (Level.TEX_SIZE + Game1.hudSize)), 1));
+            return Matrix.CreateScale(new Vector3(Game1.viewport.Width / (zoom * Level.TEX_SIZE), Game1.viewport.Height / (zoom * (Level.TEX_SIZE + Game1.levelOffsetFromHUD)), 1));
         }
 
         public Matrix getViewMatrix()
@@ -110,8 +148,8 @@ namespace Retroverse
                 dir = Direction.Down;
                 leadEdge = bottomEdge;
             }
-            int x = (int) leadEdge.X;
-            int y = (int) leadEdge.Y;
+            int x = (int)leadEdge.X;
+            int y = (int)leadEdge.Y;
             if (x <= 0 || y <= 0)
                 return false;
 
@@ -137,11 +175,6 @@ namespace Retroverse
             int tileX = (x % Level.TEX_SIZE) / Level.TILE_SIZE; // get which tile you are moving to
             int tileY = (y % Level.TEX_SIZE) / Level.TILE_SIZE;
             LevelContent.LevelTile tile = level.grid[tileX, tileY];
-
-            //*************Jon****************
-            if (hero.powerUp2 > 0) //should work then for all ghost, drill, etc.
-                return true;
-            //*****************************
 
             switch (tile)
             {
@@ -173,14 +206,14 @@ namespace Retroverse
             LevelContent.LevelTile tile = level.grid[tileX, tileY];
 
 
-            //*********Jon***************
-            
-            if (hero.powerUp2 == 1) 
-            {
-                return false;//Prevents hero from "snapping" to the walls when trying to go throught them
-            }
-          
-            //************************
+            ////*********Jon***************
+
+            //if (hero.powerUp2 == 1)
+            //{
+            //    return false;//Prevents hero from "snapping" to the walls when trying to go throught them
+            //}
+
+            ////************************
 
             switch (tile)
             {
@@ -192,47 +225,131 @@ namespace Retroverse
             return false;
         }
 
+        public void initializeArena()
+        {
+            int i = 0;
+            foreach (int[] tile in INTRO_WALLS_TO_CRUMBLE)
+            {
+                levels[STARTING_LEVEL.X, STARTING_LEVEL.Y].grid[tile[0], tile[1]] = LevelContent.LevelTile.Black;
+                Emitter wallEmitter = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
+                wallEmitter.position = new Vector2(STARTING_LEVEL.X * Level.TEX_SIZE + tile[0] * Level.TILE_SIZE + Level.TILE_SIZE / 2, STARTING_LEVEL.Y * Level.TEX_SIZE + tile[1] * Level.TILE_SIZE + Level.TILE_SIZE / 2);
+                wallEmitter.active = false;
+                INTRO_WALLS_EMITTERS[i++] = wallEmitter;
+            }
+            zoom = INTRO_INITIAL_ZOOM;
+            position = new Vector2(STARTING_LEVEL.X * Level.TEX_SIZE + STARTING_TILE.X * Level.TILE_SIZE - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, STARTING_LEVEL.Y * Level.TEX_SIZE + STARTING_TILE.Y * Level.TILE_SIZE - zoom * (Level.TEX_SIZE / 2) - (Game1.levelOffsetFromHUD) + Level.TILE_SIZE / 2);
+            introFinished = false;
+        }
+
         public void UpdateArena(GameTime gameTime)
         {
+            float seconds = gameTime.getSeconds();
+            if (!introFinished)
+            {
+                hero.Update(gameTime);
+                scrolling = true;
+                bool emitterActive = false;
+                float emitterSize = 0f;
+                if (zoom <= INTRO_FINAL_ZOOM)
+                {
+                    zoom += INTRO_ZOOM_VELOCITY * seconds;
+                    if (zoom >= (INTRO_INITIAL_ZOOM + INTRO_FINAL_ZOOM) / 2)
+                        emitterActive = true;
+                    emitterSize = zoom / INTRO_FINAL_ZOOM / 2;
+                }
+                else
+                {
+                    zoom = INTRO_FINAL_ZOOM;
+                    introFinished = true;
+                    foreach (int[] tile in INTRO_WALLS_TO_CRUMBLE)
+                    {
+                        levels[STARTING_LEVEL.X, STARTING_LEVEL.Y].grid[tile[0], tile[1]] = LevelContent.LevelTile.Green;                        
+                    }
+                    emitterActive = false;
+                }
+                foreach (Emitter e in INTRO_WALLS_EMITTERS)
+                {
+                    e.active = emitterActive;
+                    e.startSize = emitterSize;
+                    e.Update(gameTime);
+                }
+                scrollCamera(seconds);
+            }
+            else
+            {
+                foreach (Emitter e in INTRO_WALLS_EMITTERS)
+                    if (!e.isFinished())
+                        e.Update(gameTime);
+                scrolling = false;
+                collectableElapsedTime += seconds;
+                if (collectableElapsedTime >= COLLECTABLE_SPAWN_TIME && numCollectablesCurrentlyOnScreen < COLLECTABLES_MAX_AT_ONCE)
+                {
+                    collectableElapsedTime = 0;
+                    int levelX = Hero.instance.levelX;
+                    int levelY = Hero.instance.levelY;
+                    if (levels[levelX, levelY] != null)
+                    {
+                        int rand = Game1.rand.Next(levels[levelX, levelY].collectableLocations.Count);
+                        if (levels[levelX, levelY].collectableLocations.Count > 0)
+                        {
+                            int[] loc = levels[levelX, levelY].collectableLocations[rand];
+                            int i = loc[0];
+                            int j = loc[1];
+                            if (levels[levelX, levelY].collectables[i, j] == null)
+                            {
+                                levels[levelX, levelY].collectables[i, j] = new Collectable(Level.TEX_SIZE * levelX + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * levelY + j * Level.TILE_SIZE + 16, levelX, levelY, i, j);
+                                numCollectablesCurrentlyOnScreen++;
+                            }
+                        }
+                    }
+                }
+                UpdateEscape(gameTime);
+           }
         }
 
         public void UpdateEscape(GameTime gameTime)
         {
-            float seconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            //place collectables
-            collectableElapsedTime += seconds;
-            if (collectableElapsedTime >= COLLECTABLE_SPAWN_TIME)
-            {
-                collectableElapsedTime = 0;
-                int levelX = Hero.instance.levelX;//levelX and levelY controll which level
-                int levelY = Hero.instance.levelY;
-                if (levels[levelX, levelY] != null)
-                {
-                    int rand = Game1.rand.Next(levels[levelX, levelY].green.Count);
-                    if (levels[levelX, levelY].green.Count > 0)
-                    {
-                        int[] loc = levels[levelX, levelY].green[rand];
-                        int i = loc[0];
-                        int j = loc[1];
-                        if (levels[levelX, levelY].collectables[i, j] == null)
-                            levels[levelX, levelY].collectables[i, j] = new Collectable(Level.TEX_SIZE * levelX + i * Level.TILE_SIZE + Level.TILE_SIZE / 2, Level.TEX_SIZE * levelY + j * Level.TILE_SIZE + Level.TILE_SIZE / 2, levelX, levelY, i, j);
-                    }
-                }
-            }
+            float seconds = gameTime.getSeconds();
 
             //remove entities
-            if(collectablesToRemove != null)
+            if (collectablesToRemove != null)
                 foreach (Collectable c in collectablesToRemove)
                 {
-                    if (levels != null && levels[c.levelX, c.levelY] != null && levels[c.levelX, c.levelY].collectables != null)
-                        levels[c.levelX, c.levelY].collectables[c.tileX, c.tileY] = null;
+                    if (levels != null)
+                    {
+                        Level l = levels[c.levelX, c.levelY];
+                        if (l != null && l.collectables != null)
+                            if (c is Prisoner)
+                            {
+                                l.prisoners.Remove((Prisoner) c);
+                            }
+                            else
+                            {
+                                l.collectables[c.tileX, c.tileY] = null;
+                                numCollectablesCurrentlyOnScreen--;
+                            }
+                    }
                 }
+            collectablesToRemove.Clear();
+            if (bulletsToRemove != null)
+                foreach (Bullet b in bulletsToRemove)
+                {
+                    Hero.instance.ammo.Remove(b);
+                }
+            bulletsToRemove.Clear();
+            if (enemiesToRemove != null)
+                foreach (Enemy e in enemiesToRemove)
+                {
+                    foreach (Level l in levels)
+                    {
+                        if (l != null)
+                        {
+                            l.enemies.Remove(e);
+                        }
+                    }
+                }
+            enemiesToRemove.Clear();
 
-            foreach (Bullet b in bulletsToRemove)
-            {
-                Hero.instance.ammo.Remove(b);
-            }
             int prevHeroLevelX = hero.levelX;
             int prevHeroLevelY = hero.levelY;
             hero.Update(gameTime);
@@ -243,99 +360,12 @@ namespace Retroverse
                     int y = Hero.instance.levelY + yi;
                     if (x < 0 || y < 0 || x >= MAX_LEVELS || y >= MAX_LEVELS || levels[x, y] == null)
                         continue;
-                    levels[x, y].Update(gameTime);
+                    levels[x, y].UpdateEscape(gameTime);
                 }
             int curHeroLevelX = hero.levelX;
             int curHeroLevelY = hero.levelY;
             heroLevelChanged = !((prevHeroLevelX == curHeroLevelX) && (prevHeroLevelY == curHeroLevelY));
-            if (curHeroLevelX < prevHeroLevelX) // hero transitioned left
-            {
-                int indexX = curHeroLevelX + 2;
-                int indexY = curHeroLevelY;
-                if (indexX < MAX_LEVELS)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
-                            levels[indexX, indexY + i] = null;
-                    }
-                }
-                indexX = curHeroLevelX - 1;
-                if (indexX >= 0)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
-                            levels[indexX, indexY + i] = new Level(Game1.levelTemplates["" + (Game1.rand.Next(Game1.levelTemplates.Keys.Count) + 1)], indexX, indexY + i);
-                    }
-                }
-            }
-            else if (curHeroLevelX > prevHeroLevelX) // hero transitioned right
-            {
-                int indexX = curHeroLevelX - 2;
-                int indexY = curHeroLevelY;
-                if (indexX >= 0)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
-                            levels[indexX, indexY + i] = null;
-                    }
-                }
-                indexX = curHeroLevelX + 1;
-                if (indexX < MAX_LEVELS)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
-                            levels[indexX, indexY + i] = new Level(Game1.levelTemplates["" + (Game1.rand.Next(Game1.levelTemplates.Keys.Count) + 1)], indexX, indexY + i);
-                    }
-                }
-            }
-            else if (curHeroLevelY < prevHeroLevelY) // hero transitioned up
-            {
-                int indexX = curHeroLevelX;
-                int indexY = curHeroLevelY + 2;
-                if (indexY < MAX_LEVELS)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
-                            levels[indexX + i, indexY] = null;
-                    }
-                }
-                indexY = curHeroLevelY - 1;
-                if (indexY >= 0)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
-                            levels[indexX + i, indexY] = new Level(Game1.levelTemplates["" + (Game1.rand.Next(Game1.levelTemplates.Keys.Count) + 1)], indexX + i, indexY);
-                    }
-                }
-            }
-            else if (curHeroLevelY > prevHeroLevelY) // hero transitioned down
-            {
-                int indexX = curHeroLevelX;
-                int indexY = curHeroLevelY - 2;
-                if (indexY >= 0)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
-                            levels[indexX + i, indexY] = null;
-                    }
-                }
-                indexY = curHeroLevelY + 1;
-                if (indexY < MAX_LEVELS)
-                {
-                    for (int i = -1; i <= 1; i++)
-                    {
-                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
-                            levels[indexX + i, indexY] = new Level(Game1.levelTemplates["" + (Game1.rand.Next(Game1.levelTemplates.Keys.Count) + 1)], indexX + i, indexY);
-                    }
-                }
-            }
+            createAndRemoveLevels(prevHeroLevelX, prevHeroLevelY, curHeroLevelX, curHeroLevelY);
 
             foreach (Bullet b in Hero.instance.ammo)
             {
@@ -363,37 +393,83 @@ namespace Retroverse
             else if (Controller.isDown(Keys.E))
                 mult = -1f;
             zoom += zoom * mult * seconds;
-            if (!scrolling)
-                return;
-            //scrolling
-            //*****************Jon*******
-            if (hero.powerUp1==0 || hero.powerUp1==3)
-                scrollSpeed = Hero.MOVE_SPEED * scrollMultiplier *  1.20f;
-            if (hero.powerUp1 == 1 || hero.powerUp1 == 2)  //Allows scrolling to catch up to hero when moving faster
-                scrollSpeed = Hero.MOVE_SPEED * scrollMultiplier * 2.0f;
-            //****************************
-            targetPos = new Vector2(hero.position.X - zoom * (Level.TEX_SIZE / 2), hero.position.Y - zoom * (Level.TEX_SIZE / 2) - Game1.hudSize);
-            if (targetPos.X - position.X > seconds * scrollSpeed)
-                position.X += scrollSpeed * seconds;
-            else if (targetPos.X - position.X < -seconds * scrollSpeed)
-                position.X -= scrollSpeed * seconds;
-            else
-                position.X = targetPos.X;
-            if (targetPos.Y - position.Y > seconds * scrollSpeed)
-                position.Y += scrollSpeed * seconds;
-            else if (targetPos.Y - position.Y < -seconds * scrollSpeed)
-                position.Y -= scrollSpeed * seconds;
-            else
-                position.Y = targetPos.Y;
-            if (position == targetPos)
-                scrollMultiplier = 1f;
-            
+            if (scrolling)
+                scrollCamera(seconds);
+            calculateCenter();
         }
 
         public void UpdateRetro(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
-            targetPos = new Vector2(hero.position.X - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, hero.position.Y - zoom * (Level.TEX_SIZE / 2) - Game1.hudSize - Level.TILE_SIZE / 2);
+            if (scrolling)
+                scrollCamera(seconds);
+            // Remove non-revertible collectables still
+            if (collectablesToRemove != null)
+                foreach (Collectable c in collectablesToRemove)
+                {
+                    if (levels != null)
+                    {
+                        Level l = levels[c.levelX, c.levelY];
+                        if (l != null && l.collectables != null)
+                            if (c is Prisoner)
+                            {
+                                l.prisoners.Remove((Prisoner)c);
+                            }
+                            else
+                            {
+                                l.collectables[c.tileX, c.tileY] = null;
+                            }
+                    }
+                }
+            collectablesToRemove.Clear();
+            // Update non-revertible collectables still
+            for (int xi = -1; xi <= 1; xi++)
+                for (int yi = -1; yi <= 1; yi++)
+                {
+                    int x = Hero.instance.levelX + xi;
+                    int y = Hero.instance.levelY + yi;
+                    if (x < 0 || y < 0 || x >= MAX_LEVELS || y >= MAX_LEVELS || levels[x, y] == null)
+                        continue;
+                    levels[x, y].UpdateRetro(gameTime);
+                }
+            for (int x = 0; x < MAX_LEVELS; x++)
+                for (int y = 0; y < MAX_LEVELS; y++)
+                {
+                    if (levels[x, y] != null)
+                        for (int i = 0; i < LevelContent.LEVEL_SIZE; i++)
+                            for (int j = 0; j < LevelContent.LEVEL_SIZE; j++)
+                            {
+                                if (levels[x, y].collectables[i, j] != null)
+                                {
+                                    levels[x, y].collectables[i, j].Update(gameTime);
+                                }
+                            }
+                }
+
+            int prevHeroLevelX = hero.levelX;
+            int prevHeroLevelY = hero.levelY;
+            hero.setCurrentLevelAndTile();
+            int curHeroLevelX = hero.levelX;
+            int curHeroLevelY = hero.levelY;
+            heroLevelChanged = !((prevHeroLevelX == curHeroLevelX) && (prevHeroLevelY == curHeroLevelY));
+            createAndRemoveLevels(prevHeroLevelX, prevHeroLevelY, curHeroLevelX, curHeroLevelY);
+            calculateCenter();
+        }
+
+        private void calculateCenter()
+        {
+            center.X = (hero.position.X - position.X + Level.TILE_SIZE / 2) / (Level.TEX_SIZE * zoom);
+            center.Y = (hero.position.Y - position.Y + Level.TILE_SIZE / 2) / ((Level.TEX_SIZE + Game1.levelOffsetFromHUD) * zoom);
+        }
+
+        private void scrollCamera(float seconds)
+        {
+            scrollCamera(hero.position, seconds);
+        }
+
+        public void scrollCamera(Vector2 destination, float seconds)
+        {
+            targetPos = new Vector2(destination.X - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, destination.Y - zoom * (Level.TEX_SIZE / 2) - (Game1.levelOffsetFromHUD) + Level.TILE_SIZE / 2);
             if (targetPos.X - position.X > seconds * scrollSpeed)
                 position.X += scrollSpeed * seconds;
             else if (targetPos.X - position.X < -seconds * scrollSpeed)
@@ -408,6 +484,98 @@ namespace Retroverse
                 position.Y = targetPos.Y;
             if (position == targetPos)
                 scrollMultiplier = 1f;
+        }
+
+        public void createAndRemoveLevels(int prevHeroLevelX, int prevHeroLevelY, int curHeroLevelX, int curHeroLevelY)
+        {
+            if (curHeroLevelX < prevHeroLevelX) // hero transitioned left
+            {
+                int indexX = curHeroLevelX + 2;
+                int indexY = curHeroLevelY;
+                if (indexX < MAX_LEVELS)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
+                            removeLevel(indexX, indexY + i);
+                    }
+                }
+                indexX = curHeroLevelX - 1;
+                if (indexX >= 0)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
+                            levels[indexX, indexY + i] = new Level(Game1.levelTemplates.ElementAt(Game1.rand.Next(Game1.levelTemplates.Keys.Count)).Value, indexX, indexY + i);
+                    }
+                }
+            }
+            else if (curHeroLevelX > prevHeroLevelX) // hero transitioned right
+            {
+                int indexX = curHeroLevelX - 2;
+                int indexY = curHeroLevelY;
+                if (indexX >= 0)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
+                            removeLevel(indexX, indexY + i);
+                    }
+                }
+                indexX = curHeroLevelX + 1;
+                if (indexX < MAX_LEVELS)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexY + i < MAX_LEVELS && indexY + i >= 0)
+                            levels[indexX, indexY + i] = new Level(Game1.levelTemplates.ElementAt(Game1.rand.Next(Game1.levelTemplates.Keys.Count)).Value, indexX, indexY + i);
+                    }
+                }
+            }
+            else if (curHeroLevelY < prevHeroLevelY) // hero transitioned up
+            {
+                int indexX = curHeroLevelX;
+                int indexY = curHeroLevelY + 2;
+                if (indexY < MAX_LEVELS)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
+                            removeLevel(indexX + i, indexY);
+                    }
+                }
+                indexY = curHeroLevelY - 1;
+                if (indexY >= 0)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
+                            levels[indexX + i, indexY] = new Level(Game1.levelTemplates.ElementAt(Game1.rand.Next(Game1.levelTemplates.Keys.Count)).Value, indexX + i, indexY);
+                    }
+                }
+            }
+            else if (curHeroLevelY > prevHeroLevelY) // hero transitioned down
+            {
+                int indexX = curHeroLevelX;
+                int indexY = curHeroLevelY - 2;
+                if (indexY >= 0)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
+                            removeLevel(indexX + i, indexY);
+                    }
+                }
+                indexY = curHeroLevelY + 1;
+                if (indexY < MAX_LEVELS)
+                {
+                    for (int i = -1; i <= 1; i++)
+                    {
+                        if (indexX + i < MAX_LEVELS && indexX + i >= 0)
+                            levels[indexX + i, indexY] = new Level(Game1.levelTemplates.ElementAt(Game1.rand.Next(Game1.levelTemplates.Keys.Count)).Value, indexX + i, indexY);
+                    }
+                }
+            }
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -433,8 +601,17 @@ namespace Retroverse
             if (Game1.DEBUG)
                 hero.DrawDebug(spriteBatch);
 
-            //foreach(Enemy enemy in enemies)
-            //    enemy.Draw(spriteBatch);
+            if (Game1.state == GameState.Arena)
+            {
+                if (!introFinished)
+                {
+                    foreach (int[] wall in INTRO_WALLS_TO_CRUMBLE)
+                        spriteBatch.Draw(Level.TILE_TO_TEXTURE[LevelContent.LevelTile.Black], new Vector2(STARTING_LEVEL.X * Level.TEX_SIZE + wall[0] * Level.TILE_SIZE, STARTING_LEVEL.Y * Level.TEX_SIZE + wall[1] * Level.TILE_SIZE), null, Color.DarkGray, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1);
+                }
+                foreach (Emitter e in INTRO_WALLS_EMITTERS)
+                    if (!e.isFinished())
+                        e.Draw(spriteBatch);
+            }
         }
 
         private static bool pointsAdjacent(int x1, int y1, int x2, int y2)
@@ -463,39 +640,23 @@ namespace Retroverse
                         c = Color.Black;
                     else
                     {
-                        switch (levels[x, y].id)
-                        {
-                            case 0:
-                                c = Color.Purple;
-                                break;
-                            case 1:
-                                c = Color.Green;
-                                break;
-                            case 2:
-                                c = Color.Pink;
-                                break;
-                            case 3:
-                                c = Color.Brown;
-                                break;
-                            case 4:
-                                c = Color.Orange;
-                                break;
-                        }
+                        c = levels[x, y].color;
                     }
                     c.A = (byte)(c.A * 0.8); // translucentize it
-                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20) + ((i + 1) * RADAR_CELL_WIDTHHEIGHT), 50 + ((j + 1) * RADAR_CELL_WIDTHHEIGHT), RADAR_CELL_WIDTHHEIGHT, RADAR_CELL_WIDTHHEIGHT), c);
+                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20) + ((i + 1) * RADAR_CELL_WIDTHHEIGHT), (int)(1.2f * Game1.hudSize) + ((j + 1) * RADAR_CELL_WIDTHHEIGHT), RADAR_CELL_WIDTHHEIGHT, RADAR_CELL_WIDTHHEIGHT), c);
                 }
             float tilePercX = (float)hero.tileX / LevelContent.LEVEL_SIZE;
             float tilePercY = (float)hero.tileY / LevelContent.LEVEL_SIZE;
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * (2 - tilePercX) + 20)), (int)(50 + RADAR_CELL_WIDTHHEIGHT * (1 + tilePercY)), RADAR_BORDER_WIDTH * 2, RADAR_BORDER_WIDTH * 2), Color.Goldenrod);
+            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * (2 - tilePercX) + 20)), (int)(1.2f * Game1.hudSize + RADAR_CELL_WIDTHHEIGHT * (1 + tilePercY)), RADAR_BORDER_WIDTH * 2, RADAR_BORDER_WIDTH * 2), Color.Goldenrod);
             for (int i = 0; i < 4; i++)
             {
-                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20) + (i * RADAR_CELL_WIDTHHEIGHT), 50, RADAR_BORDER_WIDTH, (3 * RADAR_CELL_WIDTHHEIGHT) + RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20) + (i * RADAR_CELL_WIDTHHEIGHT), (int)(1.2f * Game1.hudSize), RADAR_BORDER_WIDTH, (3 * RADAR_CELL_WIDTHHEIGHT) + RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
             }
             for (int i = 0; i < 4; i++)
             {
-                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20), 50 + (i * RADAR_CELL_WIDTHHEIGHT), (3 * RADAR_CELL_WIDTHHEIGHT) + RADAR_BORDER_WIDTH, RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20), (int)(1.2f * Game1.hudSize) + (i * RADAR_CELL_WIDTHHEIGHT), (3 * RADAR_CELL_WIDTHHEIGHT) + RADAR_BORDER_WIDTH, RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
             }
+
         }
 
         public void DrawDebug(SpriteBatch spriteBatch)

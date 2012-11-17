@@ -19,7 +19,7 @@ namespace Retroverse
         public static void Load(SpriteBatch spriteBatch)
         {
             int w = (int)Game1.screenSize.X;
-            int h = (int)Game1.screenSize.Y - Game1.hudSize;
+            int h = (int)Game1.screenSize.Y - Game1.levelOffsetFromHUD;
             tex = new Texture2D(spriteBatch.GraphicsDevice, w, h, false, SurfaceFormat.Color);
             Color[] data = new Color[w * h];
             Vector2 center = new Vector2(w / 2, h / 2);
@@ -52,7 +52,7 @@ namespace Retroverse
         {
             intensity = MathHelper.Clamp(intensity, 0, 1);
             int w = (int)Game1.screenSize.X;
-            int h = (int)Game1.screenSize.Y - Game1.hudSize;
+            int h = (int)Game1.screenSize.Y - Game1.levelOffsetFromHUD;
             Point p = new Point(w, h);
             if (prevSize != p)
             {
@@ -60,7 +60,7 @@ namespace Retroverse
             }
             prevSize = p;
 
-            spriteBatch.Draw(tex, new Vector2(0, Game1.hudSize), null, c * intensity, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
+            spriteBatch.Draw(tex, new Vector2(0, Game1.levelOffsetFromHUD), null, c * intensity, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
         }
     }
 }
