@@ -16,10 +16,11 @@ namespace Retroverse
         public static int idsGiven = 0;
         public string name;
         public string id;
-        public static readonly int PRISONER_SCORE = 1000;
+        public static readonly int PRISONER_SCORE = 1600;
         public int powerUp1; //, 0= Normal, 1=Bursts, 2= Fast, 3=Reverse
         public int powerUp2; //, 0= Normal, 1=Ghost, (2=Drill1, 3=Drill2)
         public int powerUp3; // -1=Normal, 0=Front, 1=Side, 2=Charge
+        public static readonly float EXCLAMATION_DURATION = 3f;
 
         public static readonly string HELP_STRING = "HELP!";
         public bool drawHelp = false;
@@ -83,11 +84,6 @@ namespace Retroverse
         public override void Update(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
-            if (dying)
-            {
-                Game1.exclamationText = "Saved prisoner " + name + " #" + id;
-                Game1.exclamationColor = Color.Black;
-            }
 
             timeSinceLastTurn += seconds;
             float time = timeSinceLastTurn;
@@ -123,6 +119,11 @@ namespace Retroverse
             }
 
             base.Update(gameTime);
+
+            if (collectedThisFrame)
+            {
+                Game1.showExclamation(new string[] { "Saved prisoner:", "" + name, "#" + id }, new Color[] { Color.White, Color.Lerp(Color.White, maskingColor, 0.5f), Color.Lerp(Color.White, maskingColor, 0.5f) }, EXCLAMATION_DURATION);
+            }
         }
 
         public override void Draw(SpriteBatch spriteBatch)

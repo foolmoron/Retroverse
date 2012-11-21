@@ -11,26 +11,69 @@ namespace Retroverse
     public static class Powerups
     {
         public static readonly int TILE_SNAP_DISTANCE = 10;
-        public static readonly int COLLECTABLES_FOR_BOOST = 3;
-        public static readonly int COLLECTABLES_FOR_GUN = 3;
+        public static readonly int COLLECTABLES_FOR_BOOST = 5;
+        public static readonly int COLLECTABLES_FOR_GUN = 10;
         public static readonly int SAND_FOR_RETRO = 3;
+        public static readonly int COLLECTABLES_FOR_DRILL = 5;
 
         public static readonly int BACKGROUND_ANIMATION_TIMESTEP = 100; //ms
         public static readonly float BACKGROUND_DRAWSCALE = 0.6f;
         public static readonly Color DEFAULT_YELLOW = new Color(255, 255, 50);
         public static readonly float ICON_DRAWSCALE = 0.45f;
 
-        private static List<Powerup> powerups = new List<Powerup>();
+        public static List<Powerup> powerups = new List<Powerup>();
         private static List<Powerup> powerupsToRemove = new List<Powerup>();
         private static List<Powerup> powerupsToAdd = new List<Powerup>();
         private static Powerup radarPowerup;
         private static Powerup currentPowerup;
 
+        private static int currentEnemyDifficulty = 1;
+        private static readonly float ENEMY_SPAWN_INTERVAL = 3f;
+        private static float enemyTimer = 0;
+        private static readonly int[] ENEMY_LIMITS = { 0, 3, 5, 15, 40 };
+        private static readonly int MIN_ENEMIES_ON_SCREEN_AT_ALL_TIMES_HARDEST_MODE = 10;
+        private static readonly int MIN_SPAWN_DISTANCE_FROM_HERO = 10;
+        private static readonly int[][] enemySpawnLocationsEasy = new int[][]
+        {
+            new int[]{1,1},
+            new int[]{4,10},
+            new int[]{10,29},
+            new int[]{15,17},
+            new int[]{24,29},
+            new int[]{29,9},
+            new int[]{21,1},
+            new int[]{13,1},
+        };
+        private static readonly int[][] enemySpawnLocationsMedium = new int[][]
+        {
+            new int[]{2,8},
+            new int[]{3,15},
+            new int[]{5,13},
+            new int[]{7,15},
+            new int[]{7,28},
+            new int[]{1,19},
+            new int[]{2,17},
+            new int[]{6,6},
+        };
+        private static readonly int[][] enemySpawnLocationsHard = new int[][]
+        {
+            new int[]{8,19},
+            new int[]{7,22},
+            new int[]{7,8},
+            new int[]{1,2},
+            new int[]{2,12},
+            new int[]{3,24},
+            new int[]{8,17},
+            new int[]{2,9},
+        };
+
+        public static bool enabled = false;
+
         private static Powerup[] debugPowerups = new Powerup[] 
         {
             new Powerup(0, 0, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostInitial, true),
-            new Powerup(0, 0, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostConstant, true),
-            new Powerup(0, 0, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostBurst, true),
+            new Powerup(0, 0, TextureManager.Get("boosticon1"), DEFAULT_YELLOW, PowerupType.BoostConstant, true),
+            new Powerup(0, 0, TextureManager.Get("boosticon2"), DEFAULT_YELLOW, PowerupType.BoostBurst, true),
             new Powerup(0, 0, TextureManager.Get("gunicon"), DEFAULT_YELLOW, PowerupType.GunInitial, true),
             new Powerup(0, 0, TextureManager.Get("forwardshoticon1"), DEFAULT_YELLOW, PowerupType.GunStraight, true),
             new Powerup(0, 0, TextureManager.Get("sideshoticon1"), DEFAULT_YELLOW, PowerupType.GunSide, true),
@@ -46,36 +89,100 @@ namespace Retroverse
 
         public static void Initialize()
         {
+            enabled = true;
             radarPowerup = new Powerup(20, 17, TextureManager.Get("radaricon"), Color.HotPink, PowerupType.Radar);
             radarPowerup.ableToBeCollected = true;
             currentPowerup = new Powerup(15, 29, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostInitial, true);
             currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_BOOST;
-            powerups.Add(currentPowerup);
+            powerups.Clear();
             powerupsToRemove.Clear();
-            powerupsToAdd.Clear();
+            powerupsToAdd.Clear();    
+            powerups.Add(currentPowerup);    
+            currentEnemyDifficulty = 0;
+            enemyTimer = 0;
         }
 
         public static void Update(GameTime gameTime)
         {
-            foreach (Powerup p in powerupsToRemove)
-                powerups.Remove(p);
-            powerupsToRemove.Clear();
-            foreach (Powerup p in powerupsToAdd)
-                powerups.Add(p);
-            powerupsToAdd.Clear();
-            foreach (Powerup p in powerups)
-                p.Update(gameTime);
-            radarPowerup.Update(gameTime);
+            if (enabled)
+            {
+                foreach (Powerup p in powerupsToRemove)
+                    powerups.Remove(p);
+                powerupsToRemove.Clear();
+                foreach (Powerup p in powerupsToAdd)
+                    powerups.Add(p);
+                powerupsToAdd.Clear();
+                foreach (Powerup p in powerups)
+                    p.Update(gameTime);
+                radarPowerup.Update(gameTime);
 
-            foreach (Powerup p in debugPowerups)
-                p.Update(gameTime);
+                foreach (Powerup p in debugPowerups)
+                    p.UpdateDebug(gameTime);
+            }
+
+            LevelManager.collectableLimit = LevelManager.COLLECTABLE_LIMITS[currentEnemyDifficulty];
+
+            enemyTimer += gameTime.getSeconds();
+            if (enemyTimer >= ENEMY_SPAWN_INTERVAL)
+            {
+                if (currentEnemyDifficulty > 0)
+                    spawnRandomEnemy(enemySpawnLocationsEasy);
+                if (currentEnemyDifficulty > 1)
+                    spawnRandomEnemy(enemySpawnLocationsMedium);
+                if (currentEnemyDifficulty > 2)
+                    spawnRandomEnemy(enemySpawnLocationsHard);
+                if (currentEnemyDifficulty > 3)
+                {
+                    Level introLevel = Game1.levelManager.levels[LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y];
+                    while (introLevel.enemies.Count < MIN_ENEMIES_ON_SCREEN_AT_ALL_TIMES_HARDEST_MODE)
+                    {
+                        spawnRandomEnemy(enemySpawnLocationsHard);
+                    }
+                }
+            }
+        }
+
+        private static void spawnRandomEnemy(int[][] locations)
+        {
+            Level introLevel = Game1.levelManager.levels[LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y];
+            if (introLevel.enemies.Count >= ENEMY_LIMITS[currentEnemyDifficulty])
+                return;
+            bool foundLocation = false;
+            int attempts = 0;
+            int[] location = null;
+            int MAX_ATTEMPTS = 5;
+            while (!foundLocation && attempts < MAX_ATTEMPTS)
+            {
+                location = locations[Game1.rand.Next(locations.Length)];
+                if (Math.Abs(location[0] - Hero.instance.tileX) + Math.Abs(location[1] - Hero.instance.tileY) >= MIN_SPAWN_DISTANCE_FROM_HERO)
+                {
+                    foundLocation = true;
+                }
+                attempts++;
+            }
+            Game1.levelManager.addEnemy(location[0], location[1], Game1.rand.Next(Enemy.TYPE_COUNT), introLevel);
+            enemyTimer = 0;
+        }
+
+        public static void UpdateDying(GameTime gameTime)
+        {
+            if (enabled)
+            {
+                foreach (Powerup p in powerups)
+                    if (p.dying)
+                        p.Update(gameTime);
+                radarPowerup.Update(gameTime);
+            }
         }
 
         public static void Draw(SpriteBatch spriteBatch)
         {
-            foreach (Powerup p in powerups)
-                p.Draw(spriteBatch);
-            radarPowerup.Draw(spriteBatch);
+            if (enabled)
+            {
+                foreach (Powerup p in powerups)
+                    p.Draw(spriteBatch);
+                radarPowerup.Draw(spriteBatch);
+            }
         }
 
         public static void DrawDebug(SpriteBatch spriteBatch, Vector2 position)
@@ -94,7 +201,7 @@ namespace Retroverse
             currentPowerup.addToProgress(c);
         }
 
-        private enum PowerupType
+        public enum PowerupType
         {
             BoostInitial,
             BoostConstant,
@@ -112,8 +219,9 @@ namespace Retroverse
             Radar
         }
 
-        private class Powerup: Collectable
+        public class Powerup: Collectable
         {
+            public static readonly float EXCLAMATION_DURATION = 3f;
             public static readonly Vector2 UP = new Vector2(0, -1);
             public static readonly Vector2 DOWN = new Vector2(0, 1);
             public static readonly Vector2 LEFT = new Vector2(-1, 0);
@@ -128,14 +236,25 @@ namespace Retroverse
             public Color tint;
             public byte iconAlpha = 255;
             public Emitter progressEmitter;
-            public bool hasProgress;
+            private bool hasProgress;
             public int progressNeededToAppear = 0;
             private int progress = 0;
-            private bool progressBySand = false;
+            public bool progressBySand = false;
+
+            // emitters for effects
+            private Emitter emitter1;
+            private Emitter emitter2;
+            private Emitter emitter3;
 
             // sequencing fields
-            public float moveSpeed = 400f;
+            new public static readonly float MOVE_SPEED = 300f;
+            public float moveSpeed = MOVE_SPEED;
             public int sequenceIndex = 0;
+            public float timerInterval = 0;
+            public float timer = 0;
+            public bool flag1;
+            public bool flag2;
+            public float value1;
 
             public Powerup(int _tileX, int _tileY, Texture2D icon, Color tint, PowerupType type, bool hasProgress = false) :
                 base(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + _tileX * Level.TILE_SIZE + Level.TILE_SIZE / 2,
@@ -167,13 +286,18 @@ namespace Retroverse
                         perFrameAction = delegate() { };
                         collectedAction = delegate()
                         {
-                            Powerup constantBoost = new Powerup(15, 28, TextureManager.Get("boosticon"), new Color(255, 100, 100), PowerupType.BoostConstant);
-                            Powerup burstBoost = new Powerup(15, 28, TextureManager.Get("boosticon"), new Color(100, 100, 255), PowerupType.BoostBurst);
+                            Powerup constantBoost = new Powerup(15, 28, TextureManager.Get("boosticon2"), new Color(255, 100, 100), PowerupType.BoostConstant);
+                            Powerup burstBoost = new Powerup(15, 28, TextureManager.Get("boosticon1"), new Color(100, 100, 255), PowerupType.BoostBurst);
                             powerupsToAdd.Add(constantBoost);
                             powerupsToAdd.Add(burstBoost);
                         };
                         break;
                     case PowerupType.BoostConstant:
+                        emitter1 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.RocketBoostFire);
+                        emitter1.active = true;
+                        emitter1.angle = 0;
+                        emitter1.startDistance = 20;
+                        emitter1.valueToDeath = 45;
                         perFrameAction = delegate()
                         {
                             switch (sequenceIndex)
@@ -190,7 +314,8 @@ namespace Retroverse
                                         sequenceIndex++;
                                     }
                                     break;
-                                case 1: 
+                                case 1:
+                                    emitter1.angle = (float)Math.PI / 2;
                                     if (!(tileX == 13 && tileY == 1))
                                     {
                                         position += UP * moveSpeed * seconds;
@@ -203,8 +328,11 @@ namespace Retroverse
                                     }
                                     break;
                                 case 2:
+                                    emitter1.active = false;
                                     break;
                             }
+                            emitter1.position = position;
+                            emitter1.Update(currentGameTime);
                         };
                         collectedAction = delegate()
                         {
@@ -214,15 +342,40 @@ namespace Retroverse
                             currentPowerup = new Powerup(29, 15, TextureManager.Get("gunicon"), DEFAULT_YELLOW, PowerupType.GunInitial, true);
                             currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_GUN;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp1 = 2;
+                            Hero.instance.powerupBoost = 2;
+                            currentEnemyDifficulty = 1;
+                            exclamate("Rocket Boost", Color.OrangeRed);
                         };
                         break;
                     case PowerupType.BoostBurst:
+                        emitter1 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.RocketBoostFire);
+                        emitter1.active = false;
+                        emitter1.angle = 0;
+                        emitter1.startDistance = 20;
+                        emitter1.valueToDeath = 45;
+                        timerInterval = 0.5f;
+                        moveSpeed = MOVE_SPEED * 0.66f;
                         perFrameAction = delegate()
                         {
+                            timer += currentGameTime.getSeconds();
+                            if (timer >= timerInterval)
+                            {
+                                if (emitter1.active)
+                                {
+                                    emitter1.active = false;
+                                    moveSpeed = MOVE_SPEED * 0.66f;
+                                }
+                                else
+                                {
+                                    emitter1.active = true;
+                                    moveSpeed = MOVE_SPEED * 1.5f;
+                                }
+                                timer = 0;
+                            }
                             switch (sequenceIndex)
                             {
                                 case 0:
+                                    emitter1.angle = (float)Math.PI;
                                     if (!(tileX == 17 && tileY == 28))
                                     {
                                         position += RIGHT * moveSpeed * seconds;
@@ -234,6 +387,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 1:
+                                    emitter1.angle = (float)Math.PI / 2;
                                     if (!(tileX == 17 && tileY == 1))
                                     {
                                         position += UP * moveSpeed * seconds;
@@ -246,8 +400,11 @@ namespace Retroverse
                                     }
                                     break;
                                 case 2:
+                                    emitter1.active = false;
                                     break;
                             }
+                            emitter1.position = position;
+                            emitter1.Update(currentGameTime);
                         };
                         collectedAction = delegate()
                         {
@@ -257,7 +414,9 @@ namespace Retroverse
                             currentPowerup = new Powerup(29, 15, TextureManager.Get("gunicon"), DEFAULT_YELLOW, PowerupType.GunInitial, true);
                             currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_GUN;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp1 = 1;
+                            Hero.instance.powerupBoost = 1;
+                            currentEnemyDifficulty = 1;
+                            exclamate("Rocket Burst", Color.DarkTurquoise);
                         };
                         break;
                     case PowerupType.GunInitial:
@@ -275,8 +434,26 @@ namespace Retroverse
                         };
                         break;
                     case PowerupType.GunStraight:
+                        moveSpeed = MOVE_SPEED * 0.8f;
+                        timerInterval = 0.2f;
+                        timer = 0.5f;
+                        direction = Direction.Left;
+                        flag1 = true;
                         perFrameAction = delegate()
                         {
+                            if (flag1)
+                            {
+                                timer += currentGameTime.getSeconds();
+                                if (timer >= timerInterval)
+                                {
+                                    Hero.instance.ammo.Add(new Bullet("bullet1", PrebuiltEmitter.SmallBulletSparks, Hero.EMITTER_STRAIGHT_COLOR, direction, Bullet.DISTANCE_LIMIT_NORMAL, Hero.BULLET_DAMAGE_NORMAL));
+                                    Hero.instance.ammo.Last().position = position;
+                                    Hero.instance.ammo.Last().scale = Hero.BULLET_NORMAL_SCALE;
+                                    Hero.instance.ammo.Last().hitbox.originalRectangle.Height = (int)(20);
+                                    Hero.instance.ammo.Last().hitbox.originalRectangle.Width = (int)(20);
+                                    timer = 0;
+                                }
+                            }
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -292,6 +469,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 1:
+                                    flag1 = false;
                                     break;
                             }
                         };
@@ -304,12 +482,52 @@ namespace Retroverse
                             currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
                             currentPowerup.progressBySand = true;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp3 = 1;
+                            Hero.instance.powerupGun = 1;
+                            currentEnemyDifficulty = 2;
+                            exclamate("Forward Shot", Color.Red);
                         };
                         break;
                     case PowerupType.GunSide:
+                        moveSpeed = MOVE_SPEED * 0.8f;
+                        timerInterval = 0.1f;
+                        timer = 0.05f;
+                        direction = Direction.Down;
+                        flag1 = true;
                         perFrameAction = delegate()
                         {
+                            if (flag1)
+                            {
+                                timer += currentGameTime.getSeconds();
+                                if (timer >= timerInterval)
+                                {
+                                    Direction dir1 = Direction.None;
+                                    Direction dir2 = Direction.None;
+                                    switch (direction)
+                                    {
+                                        case Direction.Up:
+                                        case Direction.Down:
+                                            dir1 = Direction.Left;
+                                            dir2 = Direction.Right;
+                                            break;
+                                        case Direction.Left:
+                                        case Direction.Right:
+                                            dir1 = Direction.Up;
+                                            dir2 = Direction.Down;
+                                            break;
+                                    }
+                                    Hero.instance.ammo.Add(new Bullet("bullet2", PrebuiltEmitter.SmallBulletSparks, Hero.EMITTER_SIDE_COLOR, dir1, Bullet.DISTANCE_LIMIT_NORMAL, Hero.BULLET_DAMAGE_NORMAL));
+                                    Hero.instance.ammo.Last().position = position;
+                                    Hero.instance.ammo.Last().scale = Hero.BULLET_NORMAL_SCALE;
+                                    Hero.instance.ammo.Last().hitbox.originalRectangle.Height = (int)(20);
+                                    Hero.instance.ammo.Last().hitbox.originalRectangle.Width = (int)(20);
+                                    Hero.instance.ammo.Add(new Bullet("bullet2", PrebuiltEmitter.SmallBulletSparks, Hero.EMITTER_SIDE_COLOR, dir2, Bullet.DISTANCE_LIMIT_NORMAL, Hero.BULLET_DAMAGE_NORMAL));
+                                    Hero.instance.ammo.Last().position = position;
+                                    Hero.instance.ammo.Last().scale = Hero.BULLET_NORMAL_SCALE;
+                                    Hero.instance.ammo.Last().hitbox.originalRectangle.Height = (int)(20);
+                                    Hero.instance.ammo.Last().hitbox.originalRectangle.Width = (int)(20);
+                                    timer = 0;
+                                }
+                            }
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -324,6 +542,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 1:
+                                    direction = Direction.Left;
                                     if (!(tileX == 21 && tileY == 10))
                                     {
                                         position += LEFT * moveSpeed * seconds;
@@ -335,6 +554,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 2:
+                                    direction = Direction.Up;
                                     if (!(tileX == 21 && tileY == 1))
                                     {
                                         position += UP * moveSpeed * seconds;
@@ -347,6 +567,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 3:
+                                    flag1 = false;
                                     break;
                             }
                         };
@@ -359,12 +580,54 @@ namespace Retroverse
                             currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
                             currentPowerup.progressBySand = true;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp3 = 2;
+                            Hero.instance.powerupGun = 2;
+                            currentEnemyDifficulty = 2;
+                            exclamate("Side Shot", Color.Lime);
                         };
                         break;
                     case PowerupType.GunCharge:
+                        moveSpeed = MOVE_SPEED * 0.9f;
+                        emitter1 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.ChargingSparks);
+                        timerInterval = 0.2f;
+                        timer = 1.1f;
+                        direction = Direction.Down;
+                        flag1 = true;
                         perFrameAction = delegate()
                         {
+                            if (flag1)
+                            {
+                                timer += currentGameTime.getSeconds();
+                                emitter.active = true;
+                                if (timer < Hero.BULLET_CHARGE_TIME_SMALL)
+                                {
+                                    emitter.active = false;
+                                }
+                                else if (timer >= Hero.BULLET_CHARGE_TIME_SMALL && timer < Hero.BULLET_CHARGE_TIME_MEDIUM)
+                                {
+                                    emitter1.startSize = Hero.CHARGE_PARTICLES_SMALL_SCALE;
+                                    Color c = Hero.CHARGE_COLOR_SMALL;
+                                    emitter1.startColor = c;
+                                    c.A = 255;
+                                    emitter1.endColor = c;
+                                }
+                                else if (timer >= Hero.BULLET_CHARGE_TIME_MEDIUM && timer < Hero.BULLET_CHARGE_TIME_LARGE)
+                                {
+                                    if (timer >= 1.3f)
+                                    {
+                                        Hero.instance.ammo.Add(new Bullet("chargebullet2", PrebuiltEmitter.MediumBulletSparks, Hero.EMITTER_CHARGE_COLOR, direction, Bullet.DISTANCE_LIMIT_CHARGE, Hero.BULLET_DAMAGE_CHARGE_MEDIUM, true));
+                                        Hero.instance.ammo.Last().scale = Hero.BULLET_MEDIUM_SCALE;
+                                        Hero.instance.ammo.Last().hitbox.originalRectangle.Height = (int)(64 * Hero.BULLET_MEDIUM_SCALE);
+                                        Hero.instance.ammo.Last().hitbox.originalRectangle.Width = (int)(64 * Hero.BULLET_MEDIUM_SCALE);
+                                        Hero.instance.ammo.Last().position = new Vector2(this.position.X, this.position.Y);
+                                        timer = 0;
+                                    }
+                                    emitter1.startSize = Hero.CHARGE_PARTICLES_MEDIUM_SCALE;
+                                    Color c = Hero.CHARGE_COLOR_MEDIUM;
+                                    emitter1.startColor = c;
+                                    c.A = 255;
+                                    emitter1.endColor = c;
+                                }
+                            }
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -379,6 +642,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 1:
+                                    direction = Direction.Left;
                                     if (!(tileX == 23 && tileY == 22))
                                     {
                                         position += LEFT * moveSpeed * seconds;
@@ -390,6 +654,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 2:
+                                    direction = Direction.Up;
                                     if (!(tileX == 23 && tileY == 19))
                                     {
                                         position += UP * moveSpeed * seconds;
@@ -401,6 +666,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 3:
+                                    direction = Direction.Left;
                                     if (!(tileX == 19 && tileY == 19))
                                     {
                                         position += LEFT * moveSpeed * seconds;
@@ -412,6 +678,7 @@ namespace Retroverse
                                     }
                                     break;
                                 case 4:
+                                    direction = Direction.Down;
                                     if (!(tileX == 19 && tileY == 29))
                                     {
                                         position += DOWN * moveSpeed * seconds;
@@ -424,8 +691,13 @@ namespace Retroverse
                                     }
                                     break;
                                 case 5:
+                                    timer = 0;
+                                    flag1 = false;
+                                    emitter1.active = false;
                                     break;
                             }
+                            emitter1.position = position;
+                            emitter1.Update(currentGameTime);
                         };
                         collectedAction = delegate()
                         {
@@ -436,7 +708,9 @@ namespace Retroverse
                             currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
                             currentPowerup.progressBySand = true;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp3 = 3;
+                            Hero.instance.powerupGun = 3;
+                            currentEnemyDifficulty = 2;
+                            exclamate("Charge Beam", Color.Gold);
                         };
                         break;
                     case PowerupType.RetroInitial:
@@ -452,8 +726,26 @@ namespace Retroverse
                         };
                         break;
                     case PowerupType.RetroPort:
+                        flag1 = true;
+                        flag2 = true;
+                        History.retroportSecs = 1.5f;
+                        timerInterval = History.retroportSecs;
+                        timer = -1f;
                         perFrameAction = delegate()
                         {
+                            if (timer > 0 && flag2)
+                                History.UpdateArena(currentGameTime);
+                            if (flag1)
+                            {
+                                timer += currentGameTime.getSeconds();
+                                if (timer >= timerInterval)
+                                {
+                                    Game1.levelManager.setCenterEntity(this);
+                                    History.lastState = Game1.state;
+                                    Game1.state = GameState.RetroPort;
+                                    flag1 = false;
+                                }
+                            }
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -480,6 +772,12 @@ namespace Retroverse
                                     }
                                     break;
                                 case 2:
+                                    if (flag2)
+                                    {
+                                        flag2 = false;
+                                        History.retroportSecs = History.RETROPORT_BASE_SECS;
+                                        History.clearFrames();
+                                    }
                                     break;
                             }
                         };
@@ -488,15 +786,37 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial);
-                            currentPowerup.ableToBeCollected = true;
+                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
+                            currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_DRILL;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp4 = 1;
+                            Hero.instance.powerupRetro = 1;
+                            Game1.levelManager.setCenterEntity(Hero.instance);
+                            currentEnemyDifficulty = 3;
+                            exclamate("RetroPort", Color.DimGray);
                         };
                         break;
                     case PowerupType.RetroStasis:
+                        timerInterval = 0.5f;
+                        flag1 = true;
+                        flag2 = false;
                         perFrameAction = delegate()
                         {
+                            seconds = currentGameTime.getSeconds(Hero.instance.heroTimeScale);
+                            timer += seconds;
+                            if (flag1 && timer > timerInterval)
+                            {
+                                Game1.levelManager.setCenterEntity(this);
+                                RetroStasis.activate();
+                                timerInterval = 1.5f;
+                                timer = 0;
+                                flag1 = false;
+                                flag2 = true;
+                            }
+                            else if (flag2 && timer > timerInterval)
+                            {
+                                RetroStasis.deactivate();
+                                flag2 = false;
+                            }
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -531,10 +851,13 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial);
-                            currentPowerup.ableToBeCollected = true;
+                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
+                            currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_DRILL;
                             powerupsToAdd.Add(currentPowerup);
-                            Hero.instance.powerUp4 = 2;
+                            Hero.instance.powerupRetro = 2;
+                            Game1.levelManager.setCenterEntity(Hero.instance);
+                            currentEnemyDifficulty = 3;
+                            exclamate("RetroStasis", Color.LightGray);
                         };
                         break;
                     case PowerupType.DrillInitial:                        
@@ -543,15 +866,22 @@ namespace Retroverse
                         };
                         collectedAction = delegate()
                         {
-                            Powerup singleDrill = new Powerup(2, 15, TextureManager.Get("drillicon2"), new Color(100, 100, 255), PowerupType.DrillSingle);
-                            Powerup tripleDrill = new Powerup(2, 15, TextureManager.Get("drillicon1"), new Color(100, 255, 100), PowerupType.DrillTriple);
+                            History.clearFrames();
+                            Powerup singleDrill = new Powerup(2, 15, TextureManager.Get("drillicon1"), new Color(100, 100, 255), PowerupType.DrillSingle);
+                            Powerup tripleDrill = new Powerup(2, 15, TextureManager.Get("drillicon2"), new Color(100, 255, 100), PowerupType.DrillTriple);
                             powerupsToAdd.Add(singleDrill);
                             powerupsToAdd.Add(tripleDrill);
                         };
                         break;
                     case PowerupType.DrillSingle:
+                        moveSpeed = MOVE_SPEED * 2;
+                        timerInterval = 1.25f;
+                        emitter1 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
+                        emitter1.active = false;
+                        emitter1.startSize = 0.2f;
                         perFrameAction = delegate()
                         {
+                            emitter1.Update(currentGameTime);
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -566,6 +896,64 @@ namespace Retroverse
                                     }
                                     break;
                                 case 1:
+                                    if (!(tileX == 13 && tileY == 22))
+                                    {
+                                        position += RIGHT * moveSpeed * seconds;
+                                    }
+                                    else
+                                    {
+                                        setPositionByTile(13, 22);
+                                        emitter1.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 14.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 22.5f * Level.TILE_SIZE);
+                                        emitter1.active = true;
+                                        sequenceIndex++;
+                                    }
+                                    break;
+                                case 2:
+                                    timer += currentGameTime.getSeconds();
+                                    if (timer >= timerInterval)
+                                    {
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(14, 22);
+                                        emitter1.active = false;
+                                        emitter1.startSize = 0.2f;
+                                        sequenceIndex++;
+                                        timer = 0;
+                                    }
+                                    else
+                                    {
+                                        float drillingRatio = timer / timerInterval;
+                                        emitter1.startSize = 1.5f * drillingRatio + 0.2f;
+                                    }
+                                    break;
+                                case 3:
+                                    if (!(tileX == 15 && tileY == 22))
+                                    {
+                                        position += RIGHT * moveSpeed * seconds;
+                                    }
+                                    else
+                                    {
+                                        setPositionByTile(15, 22);
+                                        emitter1.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 16.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 22.5f * Level.TILE_SIZE);
+                                        emitter1.active = true;
+                                        sequenceIndex++;
+                                    }
+                                    break;
+                                case 4:
+                                    timer += currentGameTime.getSeconds();
+                                    if (timer >= timerInterval)
+                                    {
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(16, 22);
+                                        emitter1.active = false;
+                                        emitter1.startSize = 0.2f;
+                                        sequenceIndex++;
+                                        timer = 0;
+                                    }
+                                    else
+                                    {
+                                        float drillingRatio = timer / timerInterval;
+                                        emitter1.startSize = 1.5f * drillingRatio + 0.2f;
+                                    }
+                                    break;
+                                case 5:
                                     if (!(tileX == 17 && tileY == 22))
                                     {
                                         position += RIGHT * moveSpeed * seconds;
@@ -577,7 +965,7 @@ namespace Retroverse
                                         sequenceIndex++;
                                     }
                                     break;
-                                case 2:
+                                case 6:
                                     break;
                             }
                         };
@@ -586,12 +974,28 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            Hero.instance.powerUp2 = 1;
+                            Hero.instance.powerupDrill = 1;
+                            currentEnemyDifficulty = 4;
+                            exclamate("Fast Drill", Color.IndianRed);
                         };
                         break;
                     case PowerupType.DrillTriple:
+                        moveSpeed = MOVE_SPEED * 2;
+                        timerInterval = 2f;
+                        emitter1 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
+                        emitter1.active = false;
+                        emitter2 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
+                        emitter2.active = false;
+                        emitter3 = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
+                        emitter3.active = false;
+                        emitter1.startSize = 0.2f;
+                        emitter2.startSize = 0.2f;
+                        emitter3.startSize = 0.2f;
                         perFrameAction = delegate()
                         {
+                            emitter1.Update(currentGameTime);
+                            emitter2.Update(currentGameTime);
+                            emitter3.Update(currentGameTime);
                             switch (sequenceIndex)
                             {
                                 case 0:
@@ -606,6 +1010,88 @@ namespace Retroverse
                                     }
                                     break;
                                 case 1:
+                                    if (!(tileX == 13 && tileY == 8))
+                                    {
+                                        position += RIGHT * moveSpeed * seconds;
+                                    }
+                                    else
+                                    {
+                                        setPositionByTile(13, 8);
+                                        emitter1.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 14.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 8.5f * Level.TILE_SIZE);
+                                        emitter1.active = true;
+                                        emitter2.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 14.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 7.5f * Level.TILE_SIZE);
+                                        emitter2.active = true;
+                                        emitter3.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 14.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 9.5f * Level.TILE_SIZE);
+                                        emitter3.active = true;
+                                        sequenceIndex++;
+                                    }
+                                    break;
+                                case 2:
+                                    timer += currentGameTime.getSeconds();
+                                    if (timer >= timerInterval)
+                                    {
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(14, 8);
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(14, 7);
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(14, 9);
+                                        emitter1.active = false;
+                                        emitter2.active = false;
+                                        emitter3.active = false;
+                                        emitter1.startSize = 0.2f;
+                                        emitter2.startSize = 0.2f;
+                                        emitter3.startSize = 0.2f;
+                                        sequenceIndex++;
+                                        timer = 0;
+                                    }
+                                    else
+                                    {
+                                        float drillingRatio = timer / timerInterval;
+                                        emitter1.startSize = 1.5f * drillingRatio + 0.2f;
+                                        emitter2.startSize = 1.5f * drillingRatio + 0.2f;
+                                        emitter3.startSize = 1.5f * drillingRatio + 0.2f;
+                                    }
+                                    break;
+                                case 3:
+                                    if (!(tileX == 15 && tileY == 8))
+                                    {
+                                        position += RIGHT * moveSpeed * seconds;
+                                    }
+                                    else
+                                    {
+                                        setPositionByTile(15, 8);
+                                        emitter1.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 16.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 8.5f * Level.TILE_SIZE);
+                                        emitter1.active = true;
+                                        emitter2.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 16.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 7.5f * Level.TILE_SIZE);
+                                        emitter2.active = true;
+                                        emitter3.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + 16.5f * Level.TILE_SIZE, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE + 9.5f * Level.TILE_SIZE);
+                                        emitter3.active = true;
+                                        sequenceIndex++;
+                                    }
+                                    break;
+                                case 4:
+                                    timer += currentGameTime.getSeconds();
+                                    if (timer >= timerInterval)
+                                    {
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(16, 8);
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(16, 7);
+                                        Game1.levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].drillWall(16, 9);
+                                        emitter1.active = false;
+                                        emitter2.active = false;
+                                        emitter3.active = false;
+                                        emitter1.startSize = 0.2f;
+                                        emitter2.startSize = 0.2f;
+                                        emitter3.startSize = 0.2f;
+                                        sequenceIndex++;
+                                        timer = 0;
+                                    }
+                                    else
+                                    {
+                                        float drillingRatio = timer / timerInterval;
+                                        emitter1.startSize = 1.5f * drillingRatio + 0.2f;
+                                        emitter2.startSize = 1.5f * drillingRatio + 0.2f;
+                                        emitter3.startSize = 1.5f * drillingRatio + 0.2f;
+                                    }
+                                    break;
+                                case 5:
                                     if (!(tileX == 17 && tileY == 8))
                                     {
                                         position += RIGHT * moveSpeed * seconds;
@@ -617,7 +1103,7 @@ namespace Retroverse
                                         sequenceIndex++;
                                     }
                                     break;
-                                case 2:
+                                case 6:
                                     break;
                             }
                         };
@@ -626,26 +1112,35 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            Hero.instance.powerUp2 = 2;
+                            Hero.instance.powerupDrill = 2;
+                            currentEnemyDifficulty = 4;
+                            exclamate("Triple Drill", Color.ForestGreen);
                         };
                         break;
                     case PowerupType.Radar:
                         perFrameAction = delegate() { };
                         collectedAction = delegate()
                         {
-                            Hero.instance.powerUp5 = 1;
-                            Game1.state = GameState.Escape;
+                            Hero.instance.powerupRadar = 1;
+                            Game1.levelManager.targetZoom = LevelManager.ZOOM_ESCAPE;
+                            exclamate("Radar", Color.DarkOrchid);
                         };
                         break;
                 }
                 #endregion
             }
 
+            public static void exclamate(string powerupName, Color color)
+            {
+                Game1.showExclamation(new string[] { "Acquired Power:", powerupName }, new Color[] { Color.White, color }, EXCLAMATION_DURATION);
+            }
+
             public void addToProgress(Collectable c)
             {
                 if (hasProgress && c != null && progress < progressNeededToAppear)
                 {
-                    if (!progressBySand || (progressBySand && c is Collectable))
+                    bool addToProgress = progressBySand == c is Sand;
+                    if (addToProgress)
                     {
                         progress++;
                         progressEmitter.particlesEmitted = 0;
@@ -701,10 +1196,28 @@ namespace Retroverse
                 }
             }
 
+            public void UpdateDebug(GameTime gameTime)
+            {
+                currentGameTime = gameTime;
+                seconds = gameTime.getSeconds();
+                background.Update(gameTime);
+                Vector2 centerPos = position;
+                tileX = ((int)centerPos.X % Level.TEX_SIZE) / Level.TILE_SIZE;
+                tileY = ((int)centerPos.Y % Level.TEX_SIZE) / Level.TILE_SIZE;
+                iconAlpha = 255;
+                base.Update(gameTime);
+            }
+
             public override void Draw(SpriteBatch spriteBatch)
             {
                 if (!dying)
                 {
+                    if (emitter1 != null)
+                        emitter1.Draw(spriteBatch);
+                    if (emitter2 != null)
+                        emitter2.Draw(spriteBatch);
+                    if (emitter3 != null)
+                        emitter3.Draw(spriteBatch);
                     Color backgroundColor = Color.Lerp(DEFAULT_YELLOW, Color.White, 0.25f);
                     backgroundColor.R = (byte)(backgroundColor.R * iconAlpha / 255f);
                     backgroundColor.G = (byte)(backgroundColor.G * iconAlpha / 255f);

@@ -15,7 +15,7 @@ namespace Retroverse
             : base(x, y, levelX, levelY, tileX, tileY)
         {
             setTexture("sandicon");
-            addsToProgress = false;
+            addsToProgress = true;
             scale = 0.5f;
             baseScore = SAND_SCORE;
             emitter.startColor = SAND_COLOR;

@@ -12,6 +12,7 @@ using Microsoft.Xna.Framework.Media;
 namespace Retroverse
 {
     public enum Direction { None, Up, Down, Left, Right };
+    public enum InputType { Gamepad, Keyboard };
 
     public static class Controller
     {
@@ -22,6 +23,8 @@ namespace Retroverse
         public static KeyboardState stateKey;
         public static GamePadState prevStatePad;
         public static KeyboardState prevStateKey;
+
+        public static InputType currentInputType = InputType.Gamepad;
 
         public static Direction direction;
         public static Vector2 dirVector
@@ -38,7 +41,7 @@ namespace Retroverse
             {Direction.Right, new Vector2(1, 0)},
         };
 
-        private static readonly Keys[] WASD = new Keys[] { Keys.W, Keys.A, Keys.S, Keys.D };
+        private static readonly Keys[] MOVEMENT_KEYS = new Keys[] { Keys.W, Keys.A, Keys.S, Keys.D, Keys.Up, Keys.Down, Keys.Left, Keys.Right};
         private static readonly Dictionary<Keys, double> LAST_TIME_KEY_WAS_PRESSED = new Dictionary<Keys, double>()
         {
             {Keys.W, -1},
@@ -50,8 +53,8 @@ namespace Retroverse
         public static readonly Dictionary<Buttons, Action<bool>> gamepadButtons = new Dictionary<Buttons, Action<bool>>()
         {
             {Buttons.A, action1},
-            {Buttons.B, action2},
-            {Buttons.RightShoulder, action3},
+            {Buttons.B, action3},
+            {Buttons.RightShoulder, action2},
             {Buttons.X, action5},
             {Buttons.Y, action4},
             {Buttons.Start, startButton},
@@ -64,6 +67,7 @@ namespace Retroverse
             {Keys.LeftAlt, action4},
             {Keys.Enter, startButton},
             {Keys.Escape, startButton},
+            {Keys.Q, action5},
             {Keys.Z, action4},
             {Keys.X, action5},
             {Keys.C, action6},
@@ -75,26 +79,37 @@ namespace Retroverse
             statePad = GamePad.GetState(PlayerIndex.One);
             stateKey = Keyboard.GetState();
 
+            bool keyboardUsed = false;
+            bool gamepadUsed = false;
+
             //gamepad buttons
             foreach (KeyValuePair<Buttons, Action<bool>> pair in gamepadButtons)
             {
                 if (statePad.IsButtonDown(pair.Key))
+                {
+                    gamepadUsed = true;
                     pair.Value(!prevStatePad.IsButtonDown(pair.Key));
+                }
             }
             //keyboard buttons
             foreach (KeyValuePair<Keys, Action<bool>> pair in keyboardButtons)
             {
                 if (stateKey.IsKeyDown(pair.Key))
+                {
+                    keyboardUsed = true;
                     pair.Value(!prevStateKey.IsKeyDown(pair.Key));
+                }
             }
             //gamepad triggers
             if (statePad.Triggers.Right > TRIGGER_THRESHOLD && !(statePad.Triggers.Right > TRIGGER_THRESHOLD))
             {
                 // right trigger
+                gamepadUsed = true;
             }
             if (statePad.Triggers.Left > TRIGGER_THRESHOLD && !(statePad.Triggers.Left > TRIGGER_THRESHOLD))
             {
                 // left trigger
+                gamepadUsed = true;
             }
             //directional movement -- priority to figure out which controller to "listen" to: Keyboard > D-pad > Analog stick
             direction = Direction.None;
@@ -114,6 +129,11 @@ namespace Retroverse
                     else
                         direction = Direction.Down;
             }
+            if (statePad.ThumbSticks.Left != Vector2.Zero || statePad.ThumbSticks.Right != Vector2.Zero)
+            {
+                gamepadUsed = true;
+            }
+            bool dpadUsed = true;
             if (statePad.IsButtonDown(Buttons.DPadUp)) //dpad block
                 direction = Direction.Up;
             else if (statePad.IsButtonDown(Buttons.DPadDown))
@@ -122,11 +142,15 @@ namespace Retroverse
                 direction = Direction.Left;
             else if (statePad.IsButtonDown(Buttons.DPadRight))
                 direction = Direction.Right;
+            else
+                dpadUsed = false;
+            gamepadUsed = gamepadUsed || dpadUsed;
             double currentTime = gameTime.TotalGameTime.TotalMilliseconds; //WASD block
-            foreach (Keys k in WASD)
+            foreach (Keys k in MOVEMENT_KEYS)
             {
                 if (stateKey.IsKeyDown(k))
                 {
+                    keyboardUsed = true;
                     if (LAST_TIME_KEY_WAS_PRESSED[k] < 0)
                         LAST_TIME_KEY_WAS_PRESSED[k] = currentTime;
                 }
@@ -144,32 +168,46 @@ namespace Retroverse
             switch (lastPressedKeyPair.Key)
             {
                 case Keys.W:
+                case Keys.Up:
                     direction = Direction.Up;
                     break;
                 case Keys.A:
+                case Keys.Left:
                     direction = Direction.Left;
                     break;
                 case Keys.S:
+                case Keys.Down:
                     direction = Direction.Down;
                     break;
                 case Keys.D:
+                case Keys.Right:
                     direction = Direction.Right;
                     break;
             }
 
+#if DEBUG
             // debug powerup options
             if (pressed(Keys.Y))
-                Hero.instance.powerUp1 = (Hero.instance.powerUp1 + 1) % 3;
+                Hero.instance.powerupBoost = (Hero.instance.powerupBoost + 1) % 3;
             else if (pressed(Keys.U))
-                Hero.instance.powerUp2 = (Hero.instance.powerUp2 + 1) % 3;
+                Hero.instance.powerupDrill = (Hero.instance.powerupDrill + 1) % 3;
             else if (pressed(Keys.I))
-                Hero.instance.powerUp3 = (Hero.instance.powerUp3 + 1) % 4;
+                Hero.instance.powerupGun = (Hero.instance.powerupGun + 1) % 4;
             else if (pressed(Keys.O))
-                Hero.instance.powerUp4 = (Hero.instance.powerUp4 + 1) % 3;
+                Hero.instance.powerupRetro = (Hero.instance.powerupRetro + 1) % 3;
             else if (pressed(Keys.P))
-                Hero.instance.powerUp5 = (Hero.instance.powerUp5 + 1) % 2;
-            else if (pressed(Keys.L))
-                Game1.setScreenSize((ScreenSize)Enum.ToObject(typeof(ScreenSize), ((int)Game1.currentScreenSizeMode + 1) % 4));
+                Hero.instance.powerupRadar = (Hero.instance.powerupRadar + 1) % 2;
+            else
+#endif
+                if (pressed(Keys.L))
+                    Game1.toggleScreenSize();
+            if (pressed(Keys.F12))
+                Game1.gameOver();
+
+            if (keyboardUsed)
+                currentInputType = InputType.Keyboard;
+            else if (gamepadUsed)
+                currentInputType = InputType.Gamepad;
 
             prevStateKey = stateKey;
             prevStatePad = statePad;
@@ -208,13 +246,16 @@ namespace Retroverse
         public static void startButton(bool pressedDownThisFrame) //enter, start
         {
             if (pressedDownThisFrame)
-                Game1.startButton();
+            {
+                Game1.pressStartButton();
+            }
         }
 
         public static void action1(bool pressedDownThisFrame) //space, A
         {
             if (pressedDownThisFrame)
-                    Hero.instance.spaceOrA();
+            {
+            }
             Hero.instance.fire();
         }
 
@@ -222,7 +263,6 @@ namespace Retroverse
         {
             if (pressedDownThisFrame)
             {
-                Hero.instance.shiftOrB();
             }
             Hero.instance.burst();  
         }
@@ -231,7 +271,6 @@ namespace Retroverse
         {
             if (pressedDownThisFrame)
             {
-                Hero.instance.ctrlOrRB();
             }
         }
 
@@ -239,7 +278,6 @@ namespace Retroverse
         {
             if (pressedDownThisFrame)
             {
-                Hero.instance.altOrXY();
             }
         }
 
@@ -262,6 +300,45 @@ namespace Retroverse
         public static void action7(bool pressedDownThisFrame)
         {
             Hero.instance.burst();            
+        }
+
+        public static string getKeyIconForPowerup(int i)
+        {
+            switch (i)
+            {
+                case 1:
+                    return "^";
+                case 2:
+                    return "_";
+                case 3:
+                    return "Q";
+                case 4:
+                    return "";
+                case 5:
+                    return "";
+                default:
+                    return "";
+            }
+        }
+
+        public static string getButtonIconForPowerup(int i)
+        {
+
+            switch (i)
+            {
+                case 1:
+                    return "R";
+                case 2:
+                    return "A";
+                case 3:
+                    return "X";
+                case 4:
+                    return "";
+                case 5:
+                    return "";
+                default:
+                    return "";
+            }
         }
     }
 }

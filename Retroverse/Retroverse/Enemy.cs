@@ -13,18 +13,19 @@ namespace Retroverse
     public class Enemy : Entity
     {
         public static readonly double CHANCE_TO_SPAWN_SAND_ON_DEATH = 0.20;
-        public static readonly int ENEMY_KILL_SCORE = 250;
+        public static readonly int ENEMY_KILL_SCORE = 150;
         public static readonly int WALL_COST = 100000;
         public static readonly int MAX_COST = 1000;
         public static readonly Point[] aimPoints = { new Point(0, 0), new Point(0, 2), new Point(2, 0), new Point(0, -2) };
+        public static readonly int TYPE_COUNT = aimPoints.Length;
         public Point aim, aimOffset;
         public Vector2 dirVector;
-        public static readonly float MOVE_SPEED = Hero.MOVE_SPEED * 0.9f;
+        public static readonly float MOVE_SPEED = Hero.MOVE_SPEED * 0.75f;
         public static LevelContent.LevelTile[,] original = new LevelContent.LevelTile[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
         public int[,] grid = new int[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
         public Point roundPosition;
         public int enemyUpdateFrequency = 10;
-        HashSet<Point> walls = new HashSet<Point>();
+        public HashSet<Point> walls = new HashSet<Point>();
         public int[] pqCorrection = new int[2000];
         private readonly Dictionary<Vector2, Direction> VECTOR_TO_DIR = new Dictionary<Vector2, Direction>(){
             {Vector2.Zero,Direction.None},
@@ -54,7 +55,7 @@ namespace Retroverse
             position = new Vector2(Level.TEX_SIZE * lvl.xPos + (x * Level.TILE_SIZE) + Level.TILE_SIZE / 2, Level.TEX_SIZE * lvl.yPos + (y * Level.TILE_SIZE) + Level.TILE_SIZE / 2);
             this.setTexture("enemy" + (type + 1));
             id = idx++;
-            hp = 5;
+            hp = (Game1.state == GameState.Arena) ? 3 : 5;
             scale = 0.5f;
 
             //int levelX = (int)(position.X-x) / Level.TEX_SIZE; // get which level you are in
@@ -103,7 +104,6 @@ namespace Retroverse
 
         public double dist(Point first, Point second)
         {
-            //return Math.Sqrt((first.X - second.X) * (first.X - second.X) + (first.Y - second.Y) * (first.Y - second.Y));
             return Math.Abs(first.X - second.X) + Math.Abs(first.Y - second.Y); //Manhattan distance
         }
         public Vector2 pathFinding(int pos)
@@ -113,9 +113,6 @@ namespace Retroverse
             if (enemyUpdateCounter != 0)
                 return dirVector;
              
-            //LevelContent.LevelTile[,] grid=LevelManager.levels[LevelManager.STARTING_LEVEL.X,LevelManager.STARTING_LEVEL.Y].grid;
-            //pqCorrection = new int[2000];
-            //aim = new Vector2(9,22);//
             aim = new Point(Hero.instance.tileX, Hero.instance.tileY);
             if (dist(roundPosition, aim) > 6)
             {
@@ -128,77 +125,12 @@ namespace Retroverse
                 return Vector2.Zero;
             if (aim.Equals(roundPosition))
             {
-                //Console.WriteLine("ARRIVED");
                 return Vector2.Zero;
-                //return new Vector2(0, 0);
             }
-            return lvl.aStar(roundPosition.X,roundPosition.Y,aim.X,aim.Y);
-            //return lvl.cost[(int)roundPosition.X,(int)roundPosition.Y,(int)aim.X,(int)aim.Y];
-            /*
-            if (grid[(int)aim.X, (int)aim.Y] >= WALL_COST)
-            {
-                grid[(int)aim.X, (int)aim.Y] = 1;
-                walls.Remove(aim);
-            }
-            SortedList<double, Point> queue = new SortedList<double, Point>(PREMADE_QUEUE);
-            HashSet<Point> visited = new HashSet<Point>();
-            Dictionary<Point, Point> path = new Dictionary<Point, Point>();
-            int[,] best_cost = new int[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
-            for (int a = 0; a < LevelContent.LEVEL_SIZE; a++)
-                for (int b = 0; b < LevelContent.LEVEL_SIZE; b++)
-                {
-                    best_cost[a, b] = MAX_COST;
-                }
-            best_cost[(int)roundPosition.X, (int)roundPosition.Y] = 0;
-
-            queue.RemoveAt(queue.IndexOfValue(roundPosition));
-            queue.Add(dist(roundPosition, aim), roundPosition);
-            Point cur, neighbor;
-            int score = MAX_COST;
-            double cost_temp = 0;
-            while (queue.Count > 0)
-            {
-                cur = queue.First().Value;
-                if (cur == aim)
-                {
-                    if (best_cost[cur.X, cur.Y] >= MAX_COST)
-                        return Vector2.Zero;
-                    Point returnPoint = findPath(path, cur);
-                    return new Vector2(returnPoint.X - roundPosition.X, returnPoint.Y - roundPosition.Y);
-                }
-                //return best_cost[(int)aim.X,(int)aim.Y];
-                queue.RemoveAt(queue.IndexOfValue(cur));
-                visited.Add(cur);
-                for (int a = -1; a <= 1; a++)
-                    for (int b = -1; b <= 1; b++)
-                    {
-                        if (cur.X + a < 0 || cur.Y + b < 0 || ((b != 0 && a != 0)) || cur.X + a > 30 || cur.Y + b > 30)
-                            continue;
-                        neighbor = new Point(cur.X + a, cur.Y + b);
-                        if (visited.Contains(neighbor))
-                            continue;
-                        score = best_cost[(int)cur.X, (int)cur.Y] + grid[(int)cur.X + a, (int)cur.Y + b];
-                        {
-                            if ((!queue.ContainsValue(neighbor) || score < best_cost[(int)neighbor.X, (int)neighbor.Y])&&!path.ContainsKey(neighbor))
-                            {
-                                path.Add(neighbor, cur); 
-                                if (queue.ContainsValue(neighbor))
-                                    queue.RemoveAt(queue.IndexOfValue(neighbor));
-                                best_cost[(int)neighbor.X, (int)neighbor.Y] = score;
-                                cost_temp = best_cost[(int)neighbor.X, (int)neighbor.Y] + dist(neighbor, aim);
-
-                                if (queue.IndexOfKey(cost_temp) == -1)
-                                    queue.Add(cost_temp, neighbor);
-                                else
-                                    queue.Add(cost_temp + ((pqCorrection[(int)cost_temp]++) + 1) / (double)MAX_COST, neighbor);
-
-                            }
-                        }
-                    }
-
-            }
-            //Console.WriteLine("FAILURE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            return new Vector2(roundPosition.X, roundPosition.Y);*/
+            Vector2 path = lvl.aStar(roundPosition.X,roundPosition.Y,aim.X,aim.Y);
+            if (path == Vector2.Zero)
+                path = lvl.aStar(roundPosition.X, roundPosition.Y, Hero.instance.tileX, Hero.instance.tileY); // try without modifying aim
+            return path;
         }
         public Point findPath(Dictionary<Point, Point> dic, Point node)
         {
@@ -245,7 +177,8 @@ namespace Retroverse
                 float seconds = gameTime.getSeconds((Game1.retroStatisActive) ? Game1.timeScale / 3 : Game1.timeScale);
 
                 //Vector2 movement = Controller.dirVector * MOVE_SPEED * seconds;
-                Vector2 movement = dirVector * (MOVE_SPEED) * seconds;
+                float moveSpeed = MOVE_SPEED * ((Game1.state == GameState.Arena) ? 0.75f : 1f);
+                Vector2 movement = dirVector * moveSpeed * seconds;
                 float nextX = position.X + movement.X;
                 float nextY = position.Y + movement.Y;
                 bool moved = true;
@@ -350,12 +283,13 @@ namespace Retroverse
         public void die()
         {
             Game1.addScore(ENEMY_KILL_SCORE);
-            dying = true;
-            if (Game1.rand.NextDouble() < CHANCE_TO_SPAWN_SAND_ON_DEATH)
+            dying = true; 
+            double chance = Game1.rand.NextDouble();
+            if (chance < CHANCE_TO_SPAWN_SAND_ON_DEATH)
             {
                 int i = roundPosition.X;
                 int j = roundPosition.Y;
-                lvl.collectables[i, j] = new Sand(Level.TEX_SIZE * lvl.xPos + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * lvl.yPos + j * Level.TILE_SIZE + 16, lvl.xPos, lvl.yPos, i, j);
+                lvl.collectables.Add(new Sand(Level.TEX_SIZE * lvl.xPos + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * lvl.yPos + j * Level.TILE_SIZE + 16, lvl.xPos, lvl.yPos, i, j));
             }
         }
 
@@ -366,7 +300,6 @@ namespace Retroverse
             else
             {
                 base.Draw(spriteBatch);
-                hitbox.Draw(spriteBatch);
             }
         }
     }

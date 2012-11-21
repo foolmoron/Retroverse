@@ -165,6 +165,7 @@ namespace Retroverse
                 return;
             spriteBatch.Draw(tex, position, null, maskingColor, rotation, new Vector2(getTexture().Width / 2, getTexture().Height / 2), scale, getFlip(), layer);
         }
+
         public virtual void DrawDebug(SpriteBatch spriteBatch)
         {
             if (!active)

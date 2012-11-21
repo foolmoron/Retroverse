@@ -18,5 +18,17 @@ namespace Retroverse
             } else
                 return (float)gameTime.ElapsedGameTime.TotalSeconds;
         }
+
+        public static float getLuminosity(this Color color)
+        {
+            float luminosity = color.R * 0.30f + color.G * 0.59f + color.B * 0.11f;
+            return luminosity;
+        }
+
+        public static Color withAlpha(this Color color, byte alpha)
+        {
+            color.A = alpha;
+            return color;
+        }
     }
 }

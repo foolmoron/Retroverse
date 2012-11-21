@@ -20,19 +20,22 @@ namespace Retroverse
         public bool dying = false;
         public Emitter trailEmitter;
         public Emitter explosionEmitter;
-        public static readonly float DISTANCE_LIMIT = 600f;
-        public float dist;
+        public static readonly float DISTANCE_LIMIT_NORMAL = 650f;
+        public static readonly float DISTANCE_LIMIT_CHARGE = 400f;
+        public float distanceLimit;
+        public float distance;
         public string textureName;
 
         public static readonly float MOVE_SPEED = 900f;
 
-        public Bullet(string textureName, PrebuiltEmitter trailEmitterType, Color emitterColor, Direction dir, int damage, bool phasing = false)
+        public Bullet(string textureName, PrebuiltEmitter trailEmitterType, Color emitterColor, Direction dir, float distanceLimit, int damage, bool phasing = false)
             : base(new Hitbox(0, 0))
         {
             position = new Vector2(0, 0);
             this.textureName = textureName;
             this.setTexture(textureName);
             this.damage = damage;
+            this.distanceLimit = distanceLimit;
             this.phasing = phasing;
             heroPosition = new Vector2(Hero.instance.position.X, Hero.instance.position.Y);
             lastHeroPosition = heroPosition;
@@ -115,7 +118,7 @@ namespace Retroverse
                 movement = velocity * seconds;
                 float nextX = this.position.X + movement.X;
                 float nextY = this.position.Y + movement.Y;
-                dist += movement.Length();
+                distance += movement.Length();
 
                 bool collided = false;
                 if ((Game1.levelManager.collidesWithWall(new Vector2(getLeft().X, getTop().Y)) ||
@@ -130,7 +133,7 @@ namespace Retroverse
                 {
                     position = position + movement;
                 }
-                if (dist > DISTANCE_LIMIT)
+                if (distance > distanceLimit)
                     dying = true;
 
                 explosionEmitter.Update(gameTime);

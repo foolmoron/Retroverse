@@ -56,21 +56,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Levels\3.png">
-      <Name>3</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
-    <Compile Include="Levels\5.png">
-      <Name>5</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
-    <Compile Include="Levels\8.png">
-      <Name>8</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
     <Compile Include="Levels\intro.png">
       <Name>intro</Name>
       <Importer>TextureImporter</Importer>
@@ -122,8 +107,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Effects\Grayscale.fx">
-      <Name>Grayscale</Name>
+    <Compile Include="Effects\RetroStasis.fx">
+      <Name>RetroStasis</Name>
       <Importer>EffectImporter</Importer>
       <Processor>EffectProcessor</Processor>
     </Compile>
@@ -148,8 +133,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Effects\OuterGrayscale.fx">
-      <Name>OuterGrayscale</Name>
+    <Compile Include="Effects\RetroPort.fx">
+      <Name>RetroPort</Name>
       <Importer>EffectImporter</Importer>
       <Processor>EffectProcessor</Processor>
     </Compile>
@@ -233,6 +218,11 @@
     </Compile>
     <Compile Include="Fonts\pixel48.bmp">
       <Name>pixel48</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\keys36.bmp">
+      <Name>keys36</Name>
       <Importer>TextureImporter</Importer>
       <Processor>FontTextureProcessor</Processor>
     </Compile>
@@ -339,13 +329,13 @@
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
-    <Compile Include="Sprites\drillicon1.png">
-      <Name>drillicon1</Name>
+    <Compile Include="Sprites\drillicon2.png">
+      <Name>drillicon2</Name>
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
-    <Compile Include="Sprites\drillicon2.png">
-      <Name>drillicon2</Name>
+    <Compile Include="Sprites\drillicon1.png">
+      <Name>drillicon1</Name>
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
@@ -371,6 +361,21 @@
     </Compile>
     <Compile Include="Sprites\prisonerhat1.png">
       <Name>prisonerhat1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\largecircle.png">
+      <Name>largecircle</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\boosticon2.png">
+      <Name>boosticon2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\boosticon1.png">
+      <Name>boosticon1</Name>
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>

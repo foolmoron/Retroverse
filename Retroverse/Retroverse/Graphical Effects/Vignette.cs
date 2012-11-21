@@ -10,18 +10,18 @@ namespace Retroverse
     public static class Vignette
     {
         private static Texture2D tex;
+        private static Color[] data;
         private static Point prevSize = new Point(0, 0);
         public static readonly double EXP_FACTOR = 1.1;
         public static readonly double FADE_FACTOR = 12;
         public static readonly double SHARPNESS_FACTOR = 0.4;
         private static readonly double MAX_CURVE_VALUE = Math.Pow(EXP_FACTOR, FADE_FACTOR);
 
-        public static void Load(SpriteBatch spriteBatch)
+        public static void Load()
         {
             int w = (int)Game1.screenSize.X;
-            int h = (int)Game1.screenSize.Y - Game1.levelOffsetFromHUD;
-            tex = new Texture2D(spriteBatch.GraphicsDevice, w, h, false, SurfaceFormat.Color);
-            Color[] data = new Color[w * h];
+            int h = (int)Game1.screenSize.Y - Game1.hudSize;
+            data = new Color[w * h];
             Vector2 center = new Vector2(w / 2, h / 2);
             float maxdistw = Vector2.DistanceSquared(center, new Vector2(0, center.Y));
             float maxdisth = Vector2.DistanceSquared(center, new Vector2(center.X, 0));
@@ -45,22 +45,24 @@ namespace Retroverse
                 data[i].G = (g > 255) ? (byte)255 : (byte)g;
                 data[i].B = (b > 255) ? (byte)255 : (byte)b;
             }
-            tex.SetData(data);
+            prevSize = new Point(w, h);
         }
 
         public static void Draw(SpriteBatch spriteBatch, Color c, float intensity)
         {
             intensity = MathHelper.Clamp(intensity, 0, 1);
             int w = (int)Game1.screenSize.X;
-            int h = (int)Game1.screenSize.Y - Game1.levelOffsetFromHUD;
+            int h = (int)Game1.screenSize.Y - Game1.hudSize;
             Point p = new Point(w, h);
             if (prevSize != p)
+                Load();
+            if (tex == null)
             {
-                Load(spriteBatch);
+                tex = new Texture2D(spriteBatch.GraphicsDevice, (int)Game1.screenSize.X, (int)Game1.screenSize.Y - Game1.hudSize, false, SurfaceFormat.Color);
+                tex.SetData(data);
             }
-            prevSize = p;
 
-            spriteBatch.Draw(tex, new Vector2(0, Game1.levelOffsetFromHUD), null, c * intensity, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
+            spriteBatch.Draw(tex, new Vector2(0, Game1.hudSize), null, c * intensity, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
         }
     }
 }

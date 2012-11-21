@@ -26,7 +26,7 @@ namespace Retroverse
         public string cellName;
         public Color color = Color.White;
         public LevelContent.LevelTile[,] grid = new LevelContent.LevelTile[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
-        public Collectable[,] collectables = new Collectable[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
+        public List<Collectable> collectables = new List<Collectable>();
         public int xPos, yPos;
         public List<Enemy> enemies = new List<Enemy>();
         public List<Prisoner> prisoners = new List<Prisoner>();
@@ -57,8 +57,8 @@ namespace Retroverse
                 {LevelContent.LevelTile.Black, texWall},
                 {LevelContent.LevelTile.Red, null},
                 {LevelContent.LevelTile.Green, (Game1.DEBUG) ? null : texFloor},
-                {LevelContent.LevelTile.Yellow, null},
-                {LevelContent.LevelTile.Purple, null},
+                {LevelContent.LevelTile.Yellow, (Game1.DEBUG) ? null : texFloor},
+                {LevelContent.LevelTile.Purple, (Game1.DEBUG) ? null : texFloor},
             };
         }
 
@@ -131,9 +131,8 @@ namespace Retroverse
             levelTexture.SetData<Color>(data);
             color = l.color;
             grid = (LevelContent.LevelTile[,])l.grid.Clone();
-            collectables = (Collectable[,])l.collectables.Clone();
             grid_cost = (int[,])l.grid_cost.Clone();
-            cost = (Vector2[,,,])l.cost.Clone();
+            cost = new Vector2[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
             id = l.id;
             xPos = x;
             yPos = y;
@@ -143,9 +142,9 @@ namespace Retroverse
             prisonerLocations = l.prisonerLocations;
             if (!(xPos == LevelManager.STARTING_LEVEL.X && yPos == LevelManager.STARTING_LEVEL.Y))
                 foreach (int[] loc in collectableLocations)
-                    collectables[loc[0], loc[1]] = new Collectable(Level.TEX_SIZE * xPos + loc[0] * Level.TILE_SIZE + Level.TILE_SIZE / 2, Level.TEX_SIZE * yPos + loc[1] * Level.TILE_SIZE + Level.TILE_SIZE / 2, xPos, yPos, loc[0], loc[1]);
+                    collectables.Add(new Collectable(Level.TEX_SIZE * xPos + loc[0] * Level.TILE_SIZE + Level.TILE_SIZE / 2, Level.TEX_SIZE * yPos + loc[1] * Level.TILE_SIZE + Level.TILE_SIZE / 2, xPos, yPos, loc[0], loc[1]));
             foreach (int[] loc in enemyLocations)
-                enemies.Add(Game1.levelManager.addEnemy(loc[0], loc[1], (int)Game1.rand.Next(4), this));
+                Game1.levelManager.addEnemy(loc[0], loc[1], (int)Game1.rand.Next(4), this);
             foreach (int[] loc in prisonerLocations)
                 prisoners.Add(Game1.levelManager.addPrisoner(loc[0], loc[1], new Color(Game1.rand.Next(255), Game1.rand.Next(255), Game1.rand.Next(255), 255) , this));
 
@@ -213,15 +212,22 @@ namespace Retroverse
             texFloor.GetData<Color>(tiledata);
             levelTexture.SetData<Color>(0, new Rectangle(tileX * TILE_SIZE, tileY * TILE_SIZE, TILE_SIZE, TILE_SIZE), tiledata, 0, TILE_SIZE * TILE_SIZE);
             foreach (Enemy enemy in enemies)
+            {
                 enemy.grid[tileX, tileY] = 1;
-            if (Game1.rand.NextDouble() < CHANCE_TO_SPAWN_SAND_ON_DRILL)
+                enemy.walls.Remove(new Point(tileX, tileY));
+            }
+            double chance = Game1.rand.NextDouble();
+            if (chance < CHANCE_TO_SPAWN_SAND_ON_DRILL)
             {
                 int i = tileX;
                 int j = tileY;
-                collectables[i, j] = new Sand(Level.TEX_SIZE * xPos + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * yPos + j * Level.TILE_SIZE + 16, xPos, yPos, i, j);
+                collectables.Add(new Sand(Level.TEX_SIZE * xPos + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * yPos + j * Level.TILE_SIZE + 16, xPos, yPos, i, j));
             }
             UpdateCost();
             Game1.addScore(DRILL_WALL_SCORE);
+            if (Game1.state == GameState.Arena)
+                if (tileX == 0 || tileX == LevelContent.LEVEL_SIZE - 1 || tileY == 0 || tileY == LevelContent.LEVEL_SIZE - 1) // border tile
+                    Game1.enterEscapeMode();
             return true;
         }
 

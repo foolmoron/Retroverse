@@ -21,8 +21,13 @@ namespace Retroverse
         public static float SCREENHEIGHT_MIN = 480;
         public static float SCREENHEIGHT_MAX = 800;
         public float screenHeight;
+
+        private Entity centerEntity;
         public Vector2 center;
 
+        public static readonly float ZOOM_ESCAPE = 1.1f;
+        public static float zoomSpeed = 0.25f;
+        public float targetZoom;
         public float zoom;
         public bool scrolling = false;
 
@@ -39,7 +44,7 @@ namespace Retroverse
 
         // intro "cutscene" values
         public static bool introFinished;
-        public static readonly float INTRO_INITIAL_ZOOM = 0.2f;
+        public static readonly float INTRO_INITIAL_ZOOM = 0.5f;
         public static readonly float INTRO_FINAL_ZOOM = 1f;
         public static readonly float INTRO_ZOOM_VELOCITY = 0.15f;
         public static readonly int[][] INTRO_WALLS_TO_CRUMBLE = new int[][] {
@@ -57,12 +62,13 @@ namespace Retroverse
         // intro arena random collectable spawn values
         public static float collectableElapsedTime = 0;
         public static readonly float COLLECTABLE_SPAWN_TIME = 1f;
-        public static readonly int COLLECTABLES_MAX_AT_ONCE = 12;
+        public static readonly int[] COLLECTABLE_LIMITS = new int[] { 10, 15, 20, 30, 30 };
+        public static int collectableLimit = COLLECTABLE_LIMITS[0];
         public static int numCollectablesCurrentlyOnScreen = 0;
 
         // radar values
         public static int RADAR_BORDER_WIDTH = 2;
-        public static int RADAR_CELL_WIDTHHEIGHT = 35;
+        public static int RADAR_CELL_WIDTHHEIGHT = 20;
         public static Color RADAR_BORDER_COLOR = Color.White;
 
         // entities to remove on next frame
@@ -73,9 +79,11 @@ namespace Retroverse
         public LevelManager()
         {
             zoom = 1f; // 1 level
+            targetZoom = 1f;
             screenWidth = SCREENWIDTH_MIN;
             screenHeight = MathHelper.Clamp(screenWidth / Game1.viewport.AspectRatio, SCREENHEIGHT_MIN, SCREENHEIGHT_MAX);
             position = new Vector2(hero.position.X - zoom * (Level.TEX_SIZE / 2), hero.position.Y - zoom * (Level.TEX_SIZE / 2));
+            setCenterEntity(hero);
         }
 
         public void addLevel(Level l, int xPos, int yPos)
@@ -95,9 +103,9 @@ namespace Retroverse
             levels[xPos, yPos] = null;
         }
 
-        public Enemy addEnemy(int x, int y, int type, Level l)
+        public void addEnemy(int x, int y, int type, Level l)
         {
-            return new Enemy(x, y, type, l);
+            l.enemies.Add(new Enemy(x, y, type, l));
         }
 
         public Prisoner addPrisoner(int x, int y, Color c, Level l)
@@ -237,8 +245,11 @@ namespace Retroverse
                 INTRO_WALLS_EMITTERS[i++] = wallEmitter;
             }
             zoom = INTRO_INITIAL_ZOOM;
+            targetZoom = 1f;
             position = new Vector2(STARTING_LEVEL.X * Level.TEX_SIZE + STARTING_TILE.X * Level.TILE_SIZE - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, STARTING_LEVEL.Y * Level.TEX_SIZE + STARTING_TILE.Y * Level.TILE_SIZE - zoom * (Level.TEX_SIZE / 2) - (Game1.levelOffsetFromHUD) + Level.TILE_SIZE / 2);
+            numCollectablesCurrentlyOnScreen = 0;
             introFinished = false;
+            scrollCamera(new Vector2((STARTING_LEVEL.X + 0.5f) * Level.TEX_SIZE, (STARTING_LEVEL.Y + 0.5f) * Level.TEX_SIZE), 100);
         }
 
         public void UpdateArena(GameTime gameTime)
@@ -282,7 +293,7 @@ namespace Retroverse
                         e.Update(gameTime);
                 scrolling = false;
                 collectableElapsedTime += seconds;
-                if (collectableElapsedTime >= COLLECTABLE_SPAWN_TIME && numCollectablesCurrentlyOnScreen < COLLECTABLES_MAX_AT_ONCE)
+                if (collectableElapsedTime >= COLLECTABLE_SPAWN_TIME && numCollectablesCurrentlyOnScreen < collectableLimit)
                 {
                     collectableElapsedTime = 0;
                     int levelX = Hero.instance.levelX;
@@ -295,9 +306,15 @@ namespace Retroverse
                             int[] loc = levels[levelX, levelY].collectableLocations[rand];
                             int i = loc[0];
                             int j = loc[1];
-                            if (levels[levelX, levelY].collectables[i, j] == null)
+                            bool collision = false;
+                            foreach (Collectable c in levels[levelX, levelY].collectables)
                             {
-                                levels[levelX, levelY].collectables[i, j] = new Collectable(Level.TEX_SIZE * levelX + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * levelY + j * Level.TILE_SIZE + 16, levelX, levelY, i, j);
+                                if (c.tileX == i && c.tileY == j)
+                                    collision = true;
+                            }
+                            if (!collision)
+                            {
+                                levels[levelX, levelY].collectables.Add(new Collectable(Level.TEX_SIZE * levelX + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * levelY + j * Level.TILE_SIZE + 16, levelX, levelY, i, j));
                                 numCollectablesCurrentlyOnScreen++;
                             }
                         }
@@ -325,8 +342,9 @@ namespace Retroverse
                             }
                             else
                             {
-                                l.collectables[c.tileX, c.tileY] = null;
-                                numCollectablesCurrentlyOnScreen--;
+                                l.collectables.Remove(c);
+                                if (!(c is Sand))
+                                    numCollectablesCurrentlyOnScreen--;
                             }
                     }
                 }
@@ -373,36 +391,39 @@ namespace Retroverse
             }
 
             //Minh - update collectables
-            for (int x = 0; x < MAX_LEVELS; x++)
-                for (int y = 0; y < MAX_LEVELS; y++)
+            for (int xi = -1; xi <= 1; xi++)
+                for (int yi = -1; yi <= 1; yi++)
                 {
+                    int x = Hero.instance.levelX + xi;
+                    int y = Hero.instance.levelY + yi;
+                    if (x < 0 || y < 0 || x >= MAX_LEVELS || y >= MAX_LEVELS || levels[x, y] == null)
+                        continue;
                     if (levels[x, y] != null)
-                        for (int i = 0; i < LevelContent.LEVEL_SIZE; i++)
-                            for (int j = 0; j < LevelContent.LEVEL_SIZE; j++)
-                            {
-                                if (levels[x, y].collectables[i, j] != null)
-                                {
-                                    levels[x, y].collectables[i, j].Update(gameTime);
-                                }
-                            }
+                        foreach (Collectable c in levels[x, y].collectables)
+                            c.Update(gameTime);
                 }
-            //
+#if DEBUG
             float mult = 0f;
-            if (Controller.isDown(Keys.Q))
+            if (Controller.isDown(Keys.E))
                 mult = 1f;
-            else if (Controller.isDown(Keys.E))
+            else if (Controller.isDown(Keys.R))
                 mult = -1f;
-            zoom += zoom * mult * seconds;
-            if (scrolling)
-                scrollCamera(seconds);
+            targetZoom += zoomSpeed * mult * seconds;
+#endif
+            if (targetZoom - zoom > seconds * zoomSpeed)
+                zoom += zoomSpeed * seconds;
+            else if (targetZoom - zoom < -seconds * zoomSpeed)
+                zoom -= zoomSpeed * seconds;
+            else
+                zoom = targetZoom;
+            scrollCamera(seconds);
             calculateCenter();
         }
 
         public void UpdateRetro(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
-            if (scrolling)
-                scrollCamera(seconds);
+            scrollCamera(seconds);
             // Remove non-revertible collectables still
             if (collectablesToRemove != null)
                 foreach (Collectable c in collectablesToRemove)
@@ -417,7 +438,8 @@ namespace Retroverse
                             }
                             else
                             {
-                                l.collectables[c.tileX, c.tileY] = null;
+                                if (!(c is Sand))
+                                    numCollectablesCurrentlyOnScreen--;
                             }
                     }
                 }
@@ -430,20 +452,12 @@ namespace Retroverse
                     int y = Hero.instance.levelY + yi;
                     if (x < 0 || y < 0 || x >= MAX_LEVELS || y >= MAX_LEVELS || levels[x, y] == null)
                         continue;
-                    levels[x, y].UpdateRetro(gameTime);
-                }
-            for (int x = 0; x < MAX_LEVELS; x++)
-                for (int y = 0; y < MAX_LEVELS; y++)
-                {
                     if (levels[x, y] != null)
-                        for (int i = 0; i < LevelContent.LEVEL_SIZE; i++)
-                            for (int j = 0; j < LevelContent.LEVEL_SIZE; j++)
-                            {
-                                if (levels[x, y].collectables[i, j] != null)
-                                {
-                                    levels[x, y].collectables[i, j].Update(gameTime);
-                                }
-                            }
+                    {
+                        levels[x, y].UpdateRetro(gameTime);
+                        foreach (Collectable c in levels[x, y].collectables)
+                            c.Update(gameTime);
+                    }
                 }
 
             int prevHeroLevelX = hero.levelX;
@@ -458,13 +472,22 @@ namespace Retroverse
 
         private void calculateCenter()
         {
-            center.X = (hero.position.X - position.X + Level.TILE_SIZE / 2) / (Level.TEX_SIZE * zoom);
-            center.Y = (hero.position.Y - position.Y + Level.TILE_SIZE / 2) / ((Level.TEX_SIZE + Game1.levelOffsetFromHUD) * zoom);
+            center.X = (centerEntity.position.X - position.X + Level.TILE_SIZE / 2) / (Level.TEX_SIZE * zoom);
+            center.Y = (centerEntity.position.Y - position.Y + Level.TILE_SIZE / 2) / ((Level.TEX_SIZE + Game1.levelOffsetFromHUD) * zoom);
+        }
+
+        public void setCenterEntity(Entity e)
+        {
+            centerEntity = e;
+            calculateCenter();
         }
 
         private void scrollCamera(float seconds)
         {
-            scrollCamera(hero.position, seconds);
+            if (scrolling)
+                scrollCamera(hero.position, seconds);
+            else
+                scrollCamera(new Vector2((STARTING_LEVEL.X + 0.5f) * Level.TEX_SIZE, (STARTING_LEVEL.Y + 0.5f) * Level.TEX_SIZE), seconds);
         }
 
         public void scrollCamera(Vector2 destination, float seconds)
@@ -590,7 +613,7 @@ namespace Retroverse
                     //DRAW LEVEL
                     levels[x, y].Draw(spriteBatch);
                 }
-            History.DrawEnemies(spriteBatch);
+            //History.DrawEnemies(spriteBatch);
 
             foreach (Bullet b in Hero.instance.ammo)
             {
@@ -601,12 +624,12 @@ namespace Retroverse
             if (Game1.DEBUG)
                 hero.DrawDebug(spriteBatch);
 
-            if (Game1.state == GameState.Arena)
+            if (Game1.state == GameState.Arena || Game1.state == GameState.StartScreen || Game1.state == GameState.PauseScreen)
             {
                 if (!introFinished)
                 {
                     foreach (int[] wall in INTRO_WALLS_TO_CRUMBLE)
-                        spriteBatch.Draw(Level.TILE_TO_TEXTURE[LevelContent.LevelTile.Black], new Vector2(STARTING_LEVEL.X * Level.TEX_SIZE + wall[0] * Level.TILE_SIZE, STARTING_LEVEL.Y * Level.TEX_SIZE + wall[1] * Level.TILE_SIZE), null, Color.DarkGray, 0f, Vector2.Zero, 1f, SpriteEffects.None, 1);
+                        spriteBatch.Draw(Level.TILE_TO_TEXTURE[LevelContent.LevelTile.Black], new Vector2(STARTING_LEVEL.X * Level.TEX_SIZE + wall[0] * Level.TILE_SIZE, STARTING_LEVEL.Y * Level.TEX_SIZE + wall[1] * Level.TILE_SIZE), null, Game1.LEVEL_COLORS["intro"], 0f, Vector2.Zero, 1f, SpriteEffects.None, 1);
                 }
                 foreach (Emitter e in INTRO_WALLS_EMITTERS)
                     if (!e.isFinished())
@@ -626,8 +649,9 @@ namespace Retroverse
             return false;
         }
 
-        public void DrawRadar(SpriteBatch spriteBatch)
+        public void DrawRadar(SpriteBatch spriteBatch, float hudScale)
         {
+            int radarCellWidthHeight = (int)(RADAR_CELL_WIDTHHEIGHT * hudScale);
             for (int i = -1; i <= 1; i++)
                 for (int j = -1; j <= 1; j++)
                 {
@@ -643,18 +667,18 @@ namespace Retroverse
                         c = levels[x, y].color;
                     }
                     c.A = (byte)(c.A * 0.8); // translucentize it
-                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20) + ((i + 1) * RADAR_CELL_WIDTHHEIGHT), (int)(1.2f * Game1.hudSize) + ((j + 1) * RADAR_CELL_WIDTHHEIGHT), RADAR_CELL_WIDTHHEIGHT, RADAR_CELL_WIDTHHEIGHT), c);
+                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20) + ((i + 1) * radarCellWidthHeight), (int)(1.2f * Game1.hudSize) + ((j + 1) * radarCellWidthHeight), radarCellWidthHeight, radarCellWidthHeight), c);
                 }
             float tilePercX = (float)hero.tileX / LevelContent.LEVEL_SIZE;
             float tilePercY = (float)hero.tileY / LevelContent.LEVEL_SIZE;
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * (2 - tilePercX) + 20)), (int)(1.2f * Game1.hudSize + RADAR_CELL_WIDTHHEIGHT * (1 + tilePercY)), RADAR_BORDER_WIDTH * 2, RADAR_BORDER_WIDTH * 2), Color.Goldenrod);
+            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(Game1.screenSize.X - (radarCellWidthHeight * (2 - tilePercX) + 20)), (int)(1.2f * Game1.hudSize + radarCellWidthHeight * (1 + tilePercY)), RADAR_BORDER_WIDTH * 2, RADAR_BORDER_WIDTH * 2), Color.Goldenrod);
             for (int i = 0; i < 4; i++)
             {
-                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20) + (i * RADAR_CELL_WIDTHHEIGHT), (int)(1.2f * Game1.hudSize), RADAR_BORDER_WIDTH, (3 * RADAR_CELL_WIDTHHEIGHT) + RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20) + (i * radarCellWidthHeight), (int)(1.2f * Game1.hudSize), RADAR_BORDER_WIDTH, (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
             }
             for (int i = 0; i < 4; i++)
             {
-                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (RADAR_CELL_WIDTHHEIGHT * 3 + 20), (int)(1.2f * Game1.hudSize) + (i * RADAR_CELL_WIDTHHEIGHT), (3 * RADAR_CELL_WIDTHHEIGHT) + RADAR_BORDER_WIDTH, RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20), (int)(1.2f * Game1.hudSize) + (i * radarCellWidthHeight), (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH, RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
             }
 
         }
@@ -663,10 +687,12 @@ namespace Retroverse
         {
             float offsetX = 0;
             float offsetY = 0;
-            for (int x = 0; x < MAX_LEVELS; x++)
-                for (int y = 0; y < MAX_LEVELS; y++)
+            for (int xi = -1; xi <= 1; xi++)
+                for (int yi = -1; yi <= 1; yi++)
                 {
-                    if (levels[x, y] == null)
+                    int x = Hero.instance.levelX + xi;
+                    int y = Hero.instance.levelY + yi;
+                    if (x < 0 || y < 0 || x >= MAX_LEVELS || y >= MAX_LEVELS || levels[x, y] == null)
                         continue;
                     offsetX = levels[x, y].xPos * Level.TEX_SIZE;
                     offsetY = levels[x, y].yPos * Level.TEX_SIZE;

@@ -21,7 +21,7 @@ namespace Retroverse
         public Emitter emitter;
         public static readonly float COLLECTABLE_SCORE_MAXIMUM_RAMP_UP_TIME = 10f; //secs
         public static readonly float COLLECTABLE_SCORE_RANDOM_BONUS_PERCENTAGE = 0.1f;
-        public static readonly int COLLECTABLE_SCORE = 250;
+        public static readonly int COLLECTABLE_SCORE = 400;
         protected int baseScore = COLLECTABLE_SCORE;
         public float rampUpScoreBonus = 0;
         

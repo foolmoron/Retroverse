@@ -13,22 +13,24 @@ namespace Retroverse
         public static Texture2D riotGuardTexture;
 
         private static readonly List<RiotGuard> guards = new List<RiotGuard>();
-        public static readonly float INITIAL_WALL_POSITION = LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE * 0.9f;
+        public static readonly float INITIAL_WALL_POSITION = LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE * 0.5f;
         private static Vector2 wallPos;
         public static float wallPosition { get { return wallPos.X; } set { wallPos.X = value; } }
 
-        public static readonly float[] WALL_SPEEDS = new float[] { 50, 90, 125, 150, 175, 200, 210, 220, 230, 240, 250, 300, 400, 600, 1000 };
+        public static readonly float[] WALL_SPEEDS = new float[] { 40, 85, 110, 135, 155, 175, 200, 215, 230, 300, 500, 800, 1200 };
         public static readonly float wallSpeedUpgradeTime = 80f; //seconds
-        public static int wallSpeedIndex = 0;
+        private static int wallSpeedIndex = 0;
         public static float wallSpeed = WALL_SPEEDS[0];
         public static float wallTime = 0;
+        public static readonly float AUTO_GAMEOVER_DISTANCE = 40f;
 
         public static bool reversing = false;
         public static float timeToReverse;
         public static float reverseTime = 0;
+        public static readonly float MAX_REVERSE_TIME = 5;
 
         public static readonly int NUMBER_OF_GUARDS = 200;
-        public static readonly int HORIZONTAL_POSITION_VARIATION = 15;
+        public static readonly int HORIZONTAL_POSITION_VARIATION = 30;
         public static readonly int VERTICAL_POSITION_VARIATION = 7;
 
         public static readonly int GUARD_HEIGHT_OFFSET_MIN = (int) (0.9f * -(NUMBER_OF_GUARDS / 2) * VERTICAL_POSITION_VARIATION);
@@ -44,6 +46,41 @@ namespace Retroverse
                 guards.Add(new RiotGuard(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + i * VERTICAL_POSITION_VARIATION)));
         }
 
+        public static int getWallSpeedCount()
+        {
+            return 7;
+        }
+
+        public static int getCurrentWallSpeedIndex()
+        {
+            switch (wallSpeedIndex)
+            {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                    return wallSpeedIndex;
+                case 6:
+                case 7:
+                case 8:
+                case 9:
+                case 10:
+                case 11:
+                case 12:
+                    return 6;
+                default:
+                    return 0;
+            }
+        }
+
+        public static void UpdateArena(GameTime gameTime)
+        {
+            float seconds = gameTime.getSeconds();
+            resetGuardsIfNecessary(gameTime);
+        }
+
         public static void UpdateEscape(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
@@ -54,38 +91,50 @@ namespace Retroverse
                 if (wallTime >= wallSpeedUpgradeTime)
                 {
                     if (wallSpeedIndex < WALL_SPEEDS.Length)
+                    {
                         wallSpeed = WALL_SPEEDS[++wallSpeedIndex];
+                        Game1.pulseVignette();
+                    }
                     wallTime = 0;
                 }
             }
             else
             {
-                reverseTime += gameTime.getSeconds(1f);
-                if (reverseTime >= timeToReverse)
+                reverseTime += seconds;
+                if (reverseTime >= MAX_REVERSE_TIME)
                 {
-                    reversing = false;
-                    reverseTime = 0;
-                    wallSpeed *= -1;
+                    setReverse(false);
                 }
             }
             wallPosition += wallSpeed * seconds;
 
             updateGuards(gameTime);
 
+            if (wallPosition - Hero.instance.position.X >= AUTO_GAMEOVER_DISTANCE)
+            {
+                Game1.gameOver();
+            }
+
             if (wallPosition >= Hero.instance.getLeft().X)
                 Hero.instance.collideWithRiotGuardWall();
         }
 
-        public static void reverse(float secondsToReverse)
+        public static void setReverse(bool reverse)
         {
-            reversing = true;
-            timeToReverse = secondsToReverse;
-            wallSpeed *= -1;
+            reversing = reverse;
+            if (reverse && wallSpeed > 0)
+                wallSpeed *= -1;
+            else if (!reverse && wallSpeed < 0)
+                wallSpeed *= -1;
         }
 
         public static void UpdateRetro(GameTime gameTime)
         {
-            updateGuards(gameTime);
+            if (History.lastState == GameState.Escape)
+            {
+                wallPosition += wallSpeed * gameTime.getSeconds();
+                updateGuards(gameTime);
+            }
         }
 
         public static void updateGuards(GameTime gameTime)
@@ -94,6 +143,18 @@ namespace Retroverse
             foreach (RiotGuard g in guards)
             {
                 g.Update(gameTime);
+                if (g.position.Y >= (heroY + GUARD_HEIGHT_OFFSET_MAX))
+                    g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MIN));
+                else if (g.position.Y <= (heroY + GUARD_HEIGHT_OFFSET_MIN))
+                    g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MAX));
+            }
+        }
+
+        public static void resetGuardsIfNecessary(GameTime gameTime)
+        {
+            float heroY = Hero.instance.position.Y;
+            foreach (RiotGuard g in guards)
+            {
                 if (g.position.Y >= (heroY + GUARD_HEIGHT_OFFSET_MAX))
                     g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MIN));
                 else if (g.position.Y <= (heroY + GUARD_HEIGHT_OFFSET_MIN))

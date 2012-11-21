@@ -11,15 +11,16 @@ namespace Retroverse
 	public class History
 	{
 		private static Queue<Queue<History>> qq = new Queue<Queue<History>>();
-		private static float secsSinceLastRetroPort = 0;
+		public static float secsSinceLastRetroPort = 0;
 		private static History retroHistory = null;
 		private static Point lastLevel = new Point(-1, -1);
         private static GameTime currentGameTime;
         public static GameState lastState = GameState.Arena;
 
 		// retroport values
-		public static readonly float RETROPORT_SECS = 2.5f;
-		public static bool cancel = false;
+		public static float RETROPORT_BASE_SECS = 2.5f;
+        public static float retroportSecs = RETROPORT_BASE_SECS;
+		private static bool cancel = false;
 
 		// retroport reverting effect values
 		public static List<int> queueDict = new List<int>();
@@ -34,7 +35,9 @@ namespace Retroverse
 
 		// retroport intro/outro effect values
 		public static Boolean effectFinished = true;
-		public static float EFFECT_FINISHED_RADIUS;
+        public static float EFFECT_FINISHED_RADIUS;
+        private static float EFFECT_OUTRO_SPEEDUP_RADIUS;
+        private static float effectOutroModifier = 1f;
 		public static readonly float effectIntroVelocity = 2700f;
 		public static readonly float effectOutroVelocity = 900f;
 
@@ -52,13 +55,16 @@ namespace Retroverse
 
 		private HeroHistory heroState;
 		private LevelHistory levelState;
-		private EnemyHistory enemyState;
-		private BulletHistory bulletState;
+        private EnemyHistory enemyState;
+        private BulletHistory bulletState;
+        private PowerupHistory powerupState;
 
 		private History() { }
 
 		public static void UpdateArena(GameTime gameTime)
 		{
+            UpdateEscape(gameTime);
+            qq.Last().Last().powerupState = new PowerupHistory();
 		}
 
 		public static void UpdateEscape(GameTime gameTime)
@@ -79,7 +85,7 @@ namespace Retroverse
 			lastLevel = newLevel;
             qq.Last().Enqueue(h);
 			secsSinceLastRetroPort += seconds;
-			if (secsSinceLastRetroPort >= RETROPORT_SECS)
+            if (secsSinceLastRetroPort >= retroportSecs)
 			{
 				if (qq.First().Count == 0)
 					qq.Dequeue();
@@ -91,11 +97,14 @@ namespace Retroverse
 			else
 			{
                 EFFECT_FINISHED_RADIUS = Game1.screenSize.Y * 3f * Game1.levelManager.zoom;
+                EFFECT_OUTRO_SPEEDUP_RADIUS = Game1.screenSize.Y * Game1.levelManager.zoom;
                 if (effectRadius < EFFECT_FINISHED_RADIUS)
                 {
+                    if (effectRadius >= EFFECT_OUTRO_SPEEDUP_RADIUS)
+                        effectOutroModifier = 3f;
                     Game1.drawEffects = true;
                     Game1.currentEffect = Effects.OuterGrayscale;
-                    effectRadius += effectOutroVelocity * seconds;
+                    effectRadius += effectOutroVelocity * effectOutroModifier * seconds;
                     Game1.currentEffect.Parameters["width"].SetValue(Game1.screenSize.X);
                     Game1.currentEffect.Parameters["height"].SetValue(Game1.screenSize.Y);
                     Game1.currentEffect.Parameters["radius"].SetValue(effectRadius);
@@ -188,27 +197,15 @@ namespace Retroverse
 				}
 				currentFrame.heroState.apply(interpolation, nextFrame);
 				currentFrame.levelState.apply(interpolation, nextFrame);
-				currentFrame.enemyState.apply(interpolation, nextFrame);
-				currentFrame.bulletState.apply(interpolation, nextFrame);
+                currentFrame.enemyState.apply(interpolation, nextFrame);
+                currentFrame.bulletState.apply(interpolation, nextFrame);
+                if (currentFrame.powerupState != null)
+                    currentFrame.powerupState.apply(interpolation, nextFrame);
 				prevFrame = iframe;
 			}
 			if (iframe < 0 || cancel)
 			{
-				qq.Clear();
-				queueDict.Clear();
-				queueIndices = null;
-				retroportFrames = 0;
-				frame = 0;
-				prevFrame = -1;
-				secsInRetroPort = 0;
-				frameVelocity = 0;
-				lastLevel = new Point(-1, -1);
-				secsSinceLastRetroPort = 0;
-				retroHistory = null;
-				cancel = false;
-				Game1.levelManager.scrollMultiplier = 3f;
-				Game1.state = lastState;
-				Game1.drawEffects = false;
+                clearFrames();
 			}
 		}
 
@@ -269,6 +266,26 @@ namespace Retroverse
 				cancel = true;
 		}
 
+        public static void clearFrames()
+        {
+            qq.Clear();
+            queueDict.Clear();
+            queueIndices = null;
+            retroportFrames = 0;
+            frame = 0;
+            prevFrame = -1;
+            secsInRetroPort = 0;
+            frameVelocity = 0;
+            lastLevel = new Point(-1, -1);
+            secsSinceLastRetroPort = 0;
+            retroHistory = null;
+            cancel = false;
+            Game1.levelManager.scrollMultiplier = 3f;
+            Game1.state = lastState;
+            Game1.drawEffects = false;
+            RiotGuardWall.setReverse(false);
+        }
+
 		private class HeroHistory
 		{
 			public Vector2 position;
@@ -291,13 +308,17 @@ namespace Retroverse
             public float rightBoosterFiringAngle;
             public float rightBoosterFiringLength;
 
+            public Vector2 chargeEmitterPosition;
+            public float chargeEmitterStartSize;
+            public Color chargeEmitterStartColor;
+            public Color chargeEmitterEndColor;
+            public float chargeTimer;
+
             public EmitterHistory drill;
             public EmitterHistory drillLeft;
             public EmitterHistory drillRight;
             public float drillParticleSize;
             public float drillingTime;
-
-            public float riotGuardWallPosition;
 
 			public HeroHistory()
 			{
@@ -318,41 +339,42 @@ namespace Retroverse
                 rightBoosterFiringPosition = Hero.instance.rightBoosterFiring.position;
                 rightBoosterFiringAngle = Hero.instance.rightBoosterFiring.angle;
                 rightBoosterFiringLength = Hero.instance.rightBoosterFiring.valueToDeath;
+                chargeEmitterPosition = Hero.instance.chargeEmitter.position;
+                chargeEmitterStartSize = Hero.instance.chargeEmitter.startSize;
+                chargeEmitterStartColor = Hero.instance.chargeEmitter.startColor;
+                chargeEmitterEndColor = Hero.instance.chargeEmitter.endColor;
+                chargeTimer = Hero.instance.chargeTimer;
                 drill = new EmitterHistory(Hero.instance.drillEmitter);
                 drillLeft = new EmitterHistory(Hero.instance.drillEmitterLeft);
                 drillRight = new EmitterHistory(Hero.instance.drillEmitterRight);
                 drillParticleSize = Hero.instance.drillingRatio;
                 drillingTime = Hero.instance.drillingTime;
-                riotGuardWallPosition = RiotGuardWall.wallPosition;
-			}
-
-			public void apply()
-			{
-				Hero.instance.position = position;
-				Hero.instance.rotation = rotation;
-                Hero.instance.direction = dir;
-                Hero.instance.leftBoosterIdle.position = leftBoosterIdlePosition;
-                Hero.instance.rightBoosterIdle.position = rightBoosterIdlePosition;
-                Hero.instance.leftBoosterFiring.position = leftBoosterFiringPosition;
-                Hero.instance.rightBoosterFiring.position = rightBoosterFiringPosition;
-                RiotGuardWall.wallPosition = riotGuardWallPosition;
 			}
 
 			public void apply(float interp, History nextFrame)
 			{
-				if (nextFrame == null)
-					apply();
-				else
-				{
-					float thisInterp = 1 - interp;
-					Hero.instance.position = position * thisInterp + nextFrame.heroState.position * interp;
-					Hero.instance.rotation = rotation;
+                if (nextFrame == null)
+                {
+                    Hero.instance.position = position;
+                    Hero.instance.rotation = rotation;
+                    Hero.instance.direction = dir;
+                    Hero.instance.leftBoosterIdle.position = leftBoosterIdlePosition;
+                    Hero.instance.rightBoosterIdle.position = rightBoosterIdlePosition;
+                    Hero.instance.leftBoosterFiring.position = leftBoosterFiringPosition;
+                    Hero.instance.rightBoosterFiring.position = rightBoosterFiringPosition;
+                    Hero.instance.chargeTimer = chargeTimer;
+                }
+                else
+                {
+                    float thisInterp = 1 - interp;
+                    Hero.instance.position = position * thisInterp + nextFrame.heroState.position * interp;
+                    Hero.instance.rotation = rotation;
                     Hero.instance.direction = dir;
                     Hero.instance.leftBoosterIdle.position = leftBoosterIdlePosition * thisInterp + nextFrame.heroState.leftBoosterIdlePosition * interp;
                     Hero.instance.rightBoosterIdle.position = rightBoosterIdlePosition * thisInterp + nextFrame.heroState.rightBoosterIdlePosition * interp;
                     Hero.instance.leftBoosterFiring.position = leftBoosterFiringPosition * thisInterp + nextFrame.heroState.leftBoosterFiringPosition * interp;
                     Hero.instance.rightBoosterFiring.position = rightBoosterFiringPosition * thisInterp + nextFrame.heroState.rightBoosterFiringPosition * interp;
-                    RiotGuardWall.wallPosition = riotGuardWallPosition * thisInterp + nextFrame.heroState.riotGuardWallPosition * interp;
+                    Hero.instance.chargeTimer = chargeTimer * thisInterp + nextFrame.heroState.chargeTimer * interp;
                 }
                 Hero.instance.leftBoosterIdle.angle = leftBoosterIdleAngle;
                 Hero.instance.leftBoosterIdle.valueToDeath = leftBoosterIdleLength;
@@ -366,6 +388,13 @@ namespace Retroverse
                 Hero.instance.rightBoosterFiring.valueToDeath = rightBoosterFiringLength;
                 Hero.instance.leftBoosterFiring.Update(currentGameTime);
                 Hero.instance.rightBoosterFiring.Update(currentGameTime);
+
+
+                Hero.instance.chargeEmitter.position = chargeEmitterPosition;
+                Hero.instance.chargeEmitter.startSize = chargeEmitterStartSize;
+                Hero.instance.chargeEmitter.startColor = chargeEmitterStartColor;
+                Hero.instance.chargeEmitter.endColor = chargeEmitterEndColor;
+                Hero.instance.chargeEmitter.Update(currentGameTime);
 
                 Hero.instance.drillEmitter.active = drill.emitterActive;
                 Hero.instance.drillEmitterLeft.active = drillLeft.emitterActive;
@@ -717,6 +746,75 @@ namespace Retroverse
                 this.emitCount = e.particlesEmitted;
                 this.emitterActive = e.active;
             }
+        }
+
+        public class PowerupHistory
+        {			
+            public IndividualPowerupHistory[] histories;
+
+            public PowerupHistory()
+			{
+                histories = new IndividualPowerupHistory[Powerups.powerups.Count()];
+                for (int i = 0; i < Powerups.powerups.Count; i++)
+				{
+                    histories[i] = new IndividualPowerupHistory(Powerups.powerups[i]);
+				}
+			}
+            
+            public void apply(float interp, History nextFrame)
+            {
+                if (nextFrame == null)
+                {
+                    foreach (IndividualPowerupHistory h in histories)
+                    {
+                        h.target.dying = h.dying;
+                        if (!h.dying)
+                        {
+                            Powerups.Powerup p = h.target;
+                            p.position = h.position;
+                            p.direction = h.direction;
+                            p.sequenceIndex = h.sequenceIndex;
+                        }
+                    }
+                }
+                else
+                {
+                    float thisInterp = 1 - interp;
+                    for (int i = 0; i < histories.Length; i++)
+                    {
+                        IndividualPowerupHistory h1 = histories[i];
+                        IndividualPowerupHistory h2 = nextFrame.powerupState.histories[i];
+                        if (h1 == null || h2 == null)
+                            continue;
+                        h1.target.dying = h1.dying;
+                        if (!h1.dying && !h2.dying)
+                        {
+                            Powerups.Powerup p = h1.target;
+                            p.position = h1.position * thisInterp + h2.position * interp;
+                            p.direction = h1.direction;
+                            p.sequenceIndex = h1.sequenceIndex;
+                        }
+                    }
+                }
+            }
+        }
+
+        public class IndividualPowerupHistory
+        {
+            public Powerups.Powerup target;
+			public Vector2 position;
+            public Direction direction;
+            public int sequenceIndex;
+            public bool dying;
+
+            public IndividualPowerupHistory(Powerups.Powerup p)
+			{
+				target = p;
+				position = p.position;
+                direction = p.direction;
+                sequenceIndex = p.sequenceIndex;
+                dying = p.dying;
+			}
         }
 	}
 }

@@ -16,8 +16,8 @@ namespace Retroverse
 
         internal static void LoadContent(ContentManager Content)
         {
-            Grayscale = Content.Load<Effect>("Effects\\Grayscale");
-            OuterGrayscale = Content.Load<Effect>("Effects\\OuterGrayscale");
+            Grayscale = Content.Load<Effect>("Effects\\RetroStasis");
+            OuterGrayscale = Content.Load<Effect>("Effects\\RetroPort");
             ColorHighlight = Content.Load<Effect>("Effects\\ColorHighlight");
             Test = Content.Load<Effect>("Effects\\Test");
         }

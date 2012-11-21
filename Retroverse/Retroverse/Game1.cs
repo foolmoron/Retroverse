@@ -22,15 +22,17 @@ namespace Retroverse
 #else
         public static readonly bool DEBUG = false;
 #endif
-        private static Game1 game;
-        public static readonly bool TEST_INTRO_ARENA = true;
-        public static readonly bool INVINCIBILITY = false;
+        public static Game1 game;
+        public static readonly bool TEST_INTRO_ARENA = true || !DEBUG;
+        public static readonly bool INVINCIBILITY = true && DEBUG;
 
         public static readonly Dictionary<string, Color> LEVEL_COLORS = new Dictionary<string, Color>()
         {
-            {"intro", Color.CornflowerBlue},
-            {"3", Color.Orange},
-            {"5", Color.LawnGreen},
+            {"intro", new Color(69,104,165)},
+            {"rachel1", new Color(76,40,156)},
+            {"rachel2", new Color(228,188,0)},
+            {"rachel3", new Color(252,72,0)},
+            {"rachel4", new Color(102,205,170)},
         };
 
         public static Random rand = new Random();
@@ -56,13 +58,14 @@ namespace Retroverse
         public static Texture2D PIXEL;
         public static SpriteFont FONT_DEBUG;
         public static SpriteFont FONT_PIXEL_SMALL;
+        public static SpriteFont FONT_HUD_KEYS;
         public static Viewport viewport;
         public static GameState state;
         public static bool retroStatisActive = false;
         public static float timeScale = 1f;
         public static GraphicsDevice graphicsDevice;
         public static Dictionary<string, Level> levelTemplates = new Dictionary<string, Level>();
-        public static Level introLevel;
+        private static Level introLevelTemplate;
 
         // screens
         public static GameState lastState;
@@ -74,11 +77,12 @@ namespace Retroverse
         public double frameTimeCounter;
         public int frameCounter;
 
-        public static readonly float VIGNETTE_MAX_INTENSITY = 1.0f;
-        public static readonly float VIGNETTE_MIN_INTENSITY = 0.6f;
-        public float vignetteIntensity = VIGNETTE_MIN_INTENSITY;
-        public float vignetteMultiplier = 1f;
-        public static readonly float VIGNETTE_PULSE_SPEED = 0.7f;
+        public static readonly float VIGNETTE_MAX_INTENSITY = 1.2f;
+        public static readonly float VIGNETTE_MIN_INTENSITY = 0.0f;
+        public static float vignetteIntensity = VIGNETTE_MIN_INTENSITY;
+        public static float vignetteMultiplier = 1f;
+        public static readonly float VIGNETTE_PULSE_SPEED = 1.2f;
+        public static Color vignetteColor = Color.Red;
 
         public static readonly float EFFECT_RADIUS_MIN = 20f;
         public static readonly float EFFECT_RADIUS_MAX = 300f;
@@ -88,12 +92,15 @@ namespace Retroverse
 
         // on-screen text excalamation
         public static SpriteFont FONT_EXCLAMATION;
-        public static string exclamationText;
-        public static Color exclamationColor;
+        private static string[] exclamationStrings;
+        private static Color[] exclamationColors;
+        private static float exclamationDuration;
+        private static float currentExclamationTime;
 
         // score and sand management
         private static int score = 0;
         private static int lastScore = 0;
+        public static readonly int MAX_SAND = 10;
         public static int availableSand { get; private set; }
 
         public static LevelManager levelManager = new LevelManager();
@@ -103,6 +110,7 @@ namespace Retroverse
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            graphics.PreferMultiSampling = true;
             Content.RootDirectory = "Content";
             TargetElapsedTime = new TimeSpan(10000000L / 60L); // target fps
             if (TEST_INTRO_ARENA)
@@ -112,11 +120,11 @@ namespace Retroverse
             else
             {
                 state = GameState.Escape;
-                Hero.instance.powerUp1 = 1;
-                Hero.instance.powerUp2 = 2;
-                Hero.instance.powerUp3 = 2;
-                Hero.instance.powerUp4 = 2;
-                Hero.instance.powerUp5 = 1;
+                Hero.instance.powerupBoost = 1;
+                Hero.instance.powerupDrill = 2;
+                Hero.instance.powerupGun = 2;
+                Hero.instance.powerupRetro = 2;
+                Hero.instance.powerupRadar = 1;
             }
             game = this;
             for (int i = -10; i < 7; i++)
@@ -131,23 +139,36 @@ namespace Retroverse
         /// </summary>
         protected override void Initialize()
         {
-            graphics.IsFullScreen = false;
-            setScreenSize(ScreenSize.Small);
+            int screenWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            int screenHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+            if (screenHeight <= 750)
+                setScreenSize(ScreenSize.Small);
+            else if (screenHeight <= 850)
+                setScreenSize(ScreenSize.Medium);
+            else if (screenHeight <= 950)
+                setScreenSize(ScreenSize.Large);
+            else if (screenHeight > 950)
+                setScreenSize(ScreenSize.Huge);
+            else
+                setScreenSize(ScreenSize.Small);
 
             PIXEL = new Texture2D(graphics.GraphicsDevice, 1, 1);
             PIXEL.SetData(new[] { Color.White });
             viewport = GraphicsDevice.Viewport;
             History.setEffectRadiusMax();
 
+            graphics.IsFullScreen = false;
+            System.Windows.Forms.Form form = (System.Windows.Forms.Form)System.Windows.Forms.Control.FromHandle(this.Window.Handle);
+            form.Location = new System.Drawing.Point((int)(screenWidth - screenSize.X) / 2, 5);
+
             base.Initialize();
-            //levelManager.initializeEnemies();
-            //levelManager.addEnemy(2, 2, 0,);
         }
 
         public static void setScreenSize(ScreenSize size)
         {
             currentScreenSizeMode = size;
             game.setScreenSize((int)size);
+            Vignette.Load();
         }
 
         private void setScreenSize(int index)
@@ -169,6 +190,12 @@ namespace Retroverse
             }
         }
 
+        public static void toggleScreenSize()
+        {
+            if (state == GameState.PauseScreen || state == GameState.StartScreen)
+                setScreenSize((ScreenSize)Enum.ToObject(typeof(ScreenSize), ((int)Game1.currentScreenSizeMode + 1) % 4));
+        }
+
         /// <summary>
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
@@ -182,6 +209,7 @@ namespace Retroverse
             TextureManager.Add("GunPower");
             TextureManager.Add("BootPower");
             TextureManager.Add("circle");
+            TextureManager.Add("largecircle");
             TextureManager.Add("prisoner1");
             TextureManager.Add("prisonerhat1");
             TextureManager.Add("riotguard1");
@@ -200,6 +228,7 @@ namespace Retroverse
             TextureManager.Add("forwardshoticon1");
             TextureManager.Add("chargeshoticon1");
             TextureManager.Add("boosticon");
+            TextureManager.Add("boosticon", 2);
             TextureManager.Add("radaricon");
             TextureManager.Add("retroicon");
             TextureManager.Add("retroicon", 2);
@@ -211,6 +240,7 @@ namespace Retroverse
             FONT_EXCLAMATION = Content.Load<SpriteFont>("Fonts\\pixel28"); /* http://www.dafont.com/visitor.font + http://xbox.create.msdn.com/en-US/education/catalog/utility/bitmap_font_maker */
             FONT_PIXEL_SMALL = Content.Load<SpriteFont>("Fonts\\pixel23");
             FONT_PIXEL_LARGE = Content.Load<SpriteFont>("Fonts\\pixel48");
+            FONT_HUD_KEYS = Content.Load<SpriteFont>("Fonts\\keys36"); /* http://www.fontspace.com/flop-design/keymode-alphabet */
 
             //load sounds
             Aragonaise = Content.Load<Song>("Audio\\Waves\\Aragonaise");
@@ -230,14 +260,13 @@ namespace Retroverse
 
             //load effects
             Effects.LoadContent(Content);
-            Vignette.Load(spriteBatch);
 
             //load levels
             Level.Load(Content);
             FileInfo[] filePaths = new DirectoryInfo(Content.RootDirectory + "\\Levels").GetFiles("*.*");
             foreach(FileInfo file in filePaths)
                 levelTemplates[file.Name.Split('.')[0]] = new Level(Content.Load<LevelContent>("Levels\\" + file.Name.Split('.')[0]), file.Name.Split('.')[0],  spriteBatch);
-            introLevel = levelTemplates["intro"];
+            introLevelTemplate = levelTemplates["intro"];
             levelTemplates.Remove("intro");
 
             Reset();
@@ -247,15 +276,20 @@ namespace Retroverse
         public static void Reset()
         {
             Level.Initialize();
-            levelManager.addLevel(new Level(introLevel, LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y), LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y);
+            levelManager.addLevel(new Level(introLevelTemplate, LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y), LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y);
             for (int i = -1; i <= 1; i++)
                 for (int j = -1; j <= 1; j++)
                     if (i != 0 || j != 0)
-                        levelManager.addLevel(new Level(levelTemplates.ElementAt(rand.Next(levelTemplates.Keys.Count)).Value, LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j), LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j);
+                        //levelManager.addLevel(new Level(levelTemplates.ElementAt(rand.Next(levelTemplates.Keys.Count)).Value, LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j), LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j);
+                        levelManager.addLevel(new Level(levelTemplates["rachel4"], LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j), LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j);
             if (state != GameState.Escape)
             {
+                exclamationDuration = 0;
+                currentExclamationTime = 0;
+                HUD.showExclamation = false;
                 levelManager.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + Level.TILE_SIZE / 2, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE - levelOffsetFromHUD - Level.TILE_SIZE * 2f);
                 levelManager.hero = new Hero();
+                levelManager.setCenterEntity(levelManager.hero);
                 levelManager.initializeArena();
                 availableSand = 0;
                 Powerups.Initialize();
@@ -264,7 +298,7 @@ namespace Retroverse
             }
             else
             {
-                availableSand = 2;
+                availableSand = 30;
             }
         }
 
@@ -291,23 +325,24 @@ namespace Retroverse
             {
                 currentEffect = null;
                 drawEffects = false;
-                exclamationText = "";
                 switch (state)
                 {
                     case GameState.Arena:
+                        RiotGuardWall.UpdateArena(gameTime);
                         levelManager.UpdateArena(gameTime);
                         Powerups.Update(gameTime);
-                        if (Hero.instance.powerUp4 == 1)
-                            History.UpdateEscape(gameTime);
+                        if (Hero.instance.powerupRetro == 1)
+                            History.UpdateArena(gameTime);
                         break;
                     case GameState.Escape:
                         RiotGuardWall.UpdateEscape(gameTime);
                         levelManager.scrolling = true;
                         levelManager.UpdateEscape(gameTime);
-                        if (Hero.instance.powerUp4 == 1)
+                        if (Hero.instance.powerupRetro == 1)
                             History.UpdateEscape(gameTime);
                         break;
                     case GameState.RetroPort:
+                        Powerups.UpdateDying(gameTime);
                         RiotGuardWall.UpdateRetro(gameTime);
                         levelManager.UpdateRetro(gameTime);
                         History.UpdateRetro(gameTime);
@@ -323,8 +358,15 @@ namespace Retroverse
                 }
 
                 vignetteIntensity += seconds * VIGNETTE_PULSE_SPEED * vignetteMultiplier;
-                if (vignetteIntensity > VIGNETTE_MAX_INTENSITY || vignetteIntensity < VIGNETTE_MIN_INTENSITY)
+                if (vignetteIntensity >= VIGNETTE_MAX_INTENSITY)
+                {
                     vignetteMultiplier *= -1;
+                }
+                else if (vignetteIntensity < 0)
+                {
+                    vignetteMultiplier = 0;
+                    drawVignette = false;
+                }
 
                 effectRadius += EFFECT_RADIUS_SPEED * effectRadiusMultiplier * seconds;
                 if (effectRadius < EFFECT_RADIUS_MIN || effectRadius > EFFECT_RADIUS_MAX)
@@ -338,12 +380,12 @@ namespace Retroverse
                 //    songstart = true;
                 //}
 
-                HUD.Update(gameTime);
             }
+            HUD.Update(gameTime);
             base.Update(gameTime);
         }
 
-        public static void startButton()
+        public static void pressStartButton()
         {
             switch (state)
             {
@@ -371,6 +413,14 @@ namespace Retroverse
             state = GameState.GameOverScreen;
         }
 
+        public static void enterEscapeMode()
+        {
+            pulseVignette();
+            Powerups.enabled = false;
+            Game1.levelManager.targetZoom = LevelManager.ZOOM_ESCAPE;
+            state = GameState.Escape;
+        }
+
         public static void addScore(int score)
         {
             Game1.score += score;
@@ -379,12 +429,46 @@ namespace Retroverse
 
         public static void addSand()
         {
-            availableSand++;
+            if (availableSand < MAX_SAND)
+                availableSand++;
         }
 
         public static void removeSand()
         {
             availableSand--;
+        }
+
+        public static void pulseVignette()
+        {
+            pulseVignette(Color.Red);
+        }
+
+        public static void pulseVignette(Color color)
+        {
+            vignetteIntensity = 0;
+            vignetteColor = color;
+            vignetteMultiplier = 1;
+            drawVignette = true;
+        }
+
+        public static void showExclamation(string message, Color color, float duration)
+        {
+            exclamationStrings = new string[] { message };
+            exclamationColors = new Color[] { color };
+            exclamationDuration = duration;
+            currentExclamationTime = 0;
+        }
+
+        public static void showExclamation(string[] strings, Color[] colors, float duration)
+        {
+            if (strings.Length == 0 || colors.Length == 0 || strings.Length != colors.Length)
+            {
+                throw new ArgumentOutOfRangeException("The arguments messages and colors must both be of the same size and not be empty.");
+            }
+            exclamationStrings = strings;
+            exclamationColors = colors;
+            exclamationDuration = duration;
+            currentExclamationTime = 0;
         }
 
         /// <summary>
@@ -401,7 +485,7 @@ namespace Retroverse
                 case GameState.StartScreen:
                     screenText = "      << Start Screen >>\n" +
                                  "        Press ENTER to \n" +
-                                 "           ... start";
+                                 "             start";
                     break;
                 case GameState.PauseScreen:
                     screenText = "      << Pause Screen >>\n" +
@@ -427,7 +511,7 @@ namespace Retroverse
                 levelManager.DrawDebug(spriteBatch);
             levelManager.Draw(spriteBatch);
             RiotGuardWall.Draw(spriteBatch);
-            if (state == GameState.Arena)
+            if (state != GameState.Escape)
                 Powerups.Draw(spriteBatch);
             if (DEBUG)
             {
@@ -458,18 +542,29 @@ namespace Retroverse
             spriteBatchHUD.Begin(SpriteSortMode.Immediate, BlendState.NonPremultiplied);
             HUD.Draw(spriteBatchHUD);
 
-            if (Hero.instance.powerUp5 > 0)
-                levelManager.DrawRadar(spriteBatchHUD);
+            if (Hero.instance.powerupRadar == 1)
+                levelManager.DrawRadar(spriteBatchHUD, HUD.hudScale);
 
+            spriteBatchHUD.DrawString(FONT_DEBUG, "FPS: " + framerate.ToString("00.0"), new Vector2(15, hudSize), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             if (DEBUG)
             {
-                spriteBatchHUD.DrawString(FONT_DEBUG, "Shift to BOOST\nSpace to SHOOT\nX to RETRO\nHero: " + Hero.instance.position + "\nCell: " + levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].cellName + "\nWall Spd: " + RiotGuardWall.wallSpeed, new Vector2(15, 70), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                spriteBatchHUD.DrawString(FONT_DEBUG, "Hero: " + Hero.instance.tileX + "/" + Hero.instance.tileY + "\nCell: " + levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].cellName + "\nWall Spd: " + RiotGuardWall.wallSpeed, new Vector2(350, hudSize + 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             }
-            spriteBatchHUD.DrawString(FONT_DEBUG, "FPS: " + framerate.ToString("00.0"), new Vector2(screenSize.X - 120, 0.8f * hudSize), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+            if (state == GameState.PauseScreen || state == GameState.StartScreen)
+            {
+                if (Controller.currentInputType == InputType.Keyboard)
+                    spriteBatchHUD.DrawString(FONT_DEBUG, "WASD/Arrow keys to MOVE\n[Shift] to BOOST\n[Space] to SHOOT\n[Q] to RETRO\n\n[Enter] to PAUSE\n[L] to change screen size", new Vector2(15, hudSize + 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                else
+                    spriteBatchHUD.DrawString(FONT_DEBUG, "DPAD/Sticks to MOVE\n(RB) to BOOST\n(A) to SHOOT\n(X) to RETRO\n\n(Start) to PAUSE\n[L] to change screen size", new Vector2(15, hudSize + 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                
+                spriteBatchHUD.DrawString(FONT_DEBUG, "Ver. ALPHA 0.13.1", new Vector2(screenSize.X - 210, hudSize), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
 
+                if (state == GameState.PauseScreen)
+                    spriteBatchHUD.DrawString(FONT_DEBUG, "[F12] to GAME OVER", new Vector2(15, hudSize + 190), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+            }
 
             if (drawVignette)
-                Vignette.Draw(spriteBatchHUD, Color.Red, vignetteIntensity);
+                Vignette.Draw(spriteBatchHUD, vignetteColor, vignetteIntensity);
             if (DEBUG)
             {
                 levelManager.DrawDebugHUD(spriteBatchHUD);
@@ -481,38 +576,171 @@ namespace Retroverse
 
         private static class HUD
         {
+            public static readonly Color HUD_COLOR = Color.Navy;
+            public static readonly Color COOLDOWN_COLOR = new Color(60, 60, 125);
+
+            public static readonly int NUM_POWERUP_CELLS = 5;
+            public static readonly int CELL_SIZE = 20;
+            public static readonly int SPACE_BETWEEN_CELLS = 4;
+
+            public static readonly Color COLOR_SLOW = Color.Red;
+            public static readonly Color COLOR_FAST = Color.Lime;
+            public static readonly Color COLOR_CURRENT = Color.White;
+            public static readonly int CIRCLE_SIZE = 10;
+            public static readonly int CURRENT_CIRCLE_SIZE = 13;
+            public static readonly int SPACE_BETWEEN_CIRCLES = 4;
+
+            public static readonly float[] HUD_SCALES = { 1f, 1.30f, 1.60f, 1.95f };
+            public static float hudScale = 1f;
+            public static bool showExclamation;
+
             public static void Update(GameTime gameTime)
             {
                 float seconds = gameTime.getSeconds();
+                hudScale = HUD_SCALES[(int)currentScreenSizeMode];
 
+                showExclamation = false;
+                if (exclamationDuration > 0)
+                {
+                    currentExclamationTime += seconds;
+                    if (currentExclamationTime <= exclamationDuration)
+                        showExclamation = true;
+                }
             }
 
             public static void Draw(SpriteBatch spriteBatch)
             {
-                spriteBatch.Draw(PIXEL, new Rectangle(0, 0, (int)screenSize.X, hudSize), Color.Navy);
-                spriteBatch.DrawString(FONT_DEBUG, "Powerups: ", new Vector2(0, 0), Color.Orange, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                spriteBatch.Draw(PIXEL, new Rectangle(0, 0, (int)screenSize.X, hudSize), HUD_COLOR);
 
-                spriteBatch.Draw(TextureManager.Get("GunPower"), new Vector2(120, 2), Color.White);
-                spriteBatch.Draw(TextureManager.Get("BootPower"), new Vector2(146, 2), Color.White);
+                // powerups
+                float spaceBetweenCells = SPACE_BETWEEN_CELLS * hudScale;
+                float cellSize = CELL_SIZE * hudScale;
 
+                float xPos = 0;
+                float yPos = SPACE_BETWEEN_CELLS * hudScale;
+                for (int i = 0; i < NUM_POWERUP_CELLS; i++)
+                {
+                    xPos += spaceBetweenCells;
+                    spriteBatch.Draw(PIXEL, new Rectangle((int)xPos, (int)yPos, (int)cellSize, (int)cellSize), Color.White);
+                    Texture2D powerupIcon = null;
+                    bool displayPowerupBind = false;
+                    switch (i)
+                    {
+                        case 0:
+                            if (Hero.instance.powerupBoost == 1)
+                            {
+                                powerupIcon = TextureManager.Get("boosticon1");
+                                displayPowerupBind = true;
+                            }
+                            else if (Hero.instance.powerupBoost == 2)
+                                powerupIcon = TextureManager.Get("boosticon2");
+                            break;
+                        case 1:
+                            displayPowerupBind = true;
+                            if (Hero.instance.powerupGun == 1)
+                                powerupIcon = TextureManager.Get("forwardshoticon1");
+                            else if (Hero.instance.powerupGun == 2)
+                                powerupIcon = TextureManager.Get("sideshoticon1");
+                            else if (Hero.instance.powerupGun == 3)
+                                powerupIcon = TextureManager.Get("chargeshoticon1");
+                            else
+                                displayPowerupBind = false;
+                            break;
+                        case 2:
+                            displayPowerupBind = true;
+                            if (Hero.instance.powerupRetro == 1)
+                                powerupIcon = TextureManager.Get("retroicon1");
+                            else if (Hero.instance.powerupRetro == 2)
+                                powerupIcon = TextureManager.Get("retroicon2");
+                            else
+                                displayPowerupBind = false;
+                            break;
+                        case 3:
+                            if (Hero.instance.powerupDrill == 1)
+                                powerupIcon = TextureManager.Get("drillicon1");
+                            else if (Hero.instance.powerupDrill == 2)
+                                powerupIcon = TextureManager.Get("drillicon2");
+                            break;
+                        case 4:
+                            if (Hero.instance.powerupRadar == 1)
+                                powerupIcon = TextureManager.Get("radaricon");
+                            break;
+                    }
+                    float powerupCharge = Hero.instance.getPowerupCharge(i);
+                    if (powerupIcon != null)
+                    {
+                        float powerupIconScale = (float)CELL_SIZE / 64 * hudScale;
+                        spriteBatch.Draw(powerupIcon, new Vector2(xPos, yPos), null, Color.White, 0, Vector2.Zero, powerupIconScale, SpriteEffects.None, 0);
+                    }
+                    if (powerupCharge < 1)
+                        spriteBatch.Draw(PIXEL, new Rectangle((int)xPos, (int)yPos, (int)cellSize, (int)cellSize), COOLDOWN_COLOR.withAlpha(75));
+                    float maskSize = cellSize + 1;
+                    spriteBatch.Draw(PIXEL, new Rectangle((int)xPos, (int)(yPos), (int)cellSize, (int)(maskSize * (1 - powerupCharge))), COOLDOWN_COLOR.withAlpha(150));
+                    if (displayPowerupBind)
+                        if (Controller.currentInputType == InputType.Keyboard)
+                        {
+                            spriteBatch.DrawString(FONT_HUD_KEYS, Controller.getKeyIconForPowerup(i + 1), new Vector2(xPos, yPos + cellSize + 6 * hudScale), Color.White, 0, Vector2.Zero, 0.4f * hudScale, SpriteEffects.None, 0);
+                        }
+                        else
+                        {
+                            spriteBatch.DrawString(FONT_HUD_KEYS, Controller.getButtonIconForPowerup(i + 1), new Vector2(xPos, yPos + cellSize + 6 * hudScale), Color.White, 0, Vector2.Zero, 0.4f * hudScale, SpriteEffects.None, 0);
+                        }
+                    xPos += cellSize;
+                }
+
+                // hud text
+                float centerPos = xPos + spaceBetweenCells * 2;
+                spriteBatch.DrawString(FONT_DEBUG, "Score: " + score + "\n\"Sand\": " + availableSand, new Vector2(centerPos, 0), Color.Orange, 0f, Vector2.Zero, (hudScale + 1.2f) / 2, SpriteEffects.None, 0f);
+
+                if (Hero.instance.powerupRadar == 1)
+                {
+                    spriteBatch.DrawString(FONT_DEBUG, "Wall Dist: " + (int)(Hero.instance.position.X - RiotGuardWall.wallPosition), new Vector2(centerPos + screenSize.X * 0.28f, 0), Color.Orange, 0f, Vector2.Zero, (hudScale + 1.2f) / 2, SpriteEffects.None, 0f);
+                    spriteBatch.DrawString(FONT_DEBUG, "Wall Spd: ", new Vector2(centerPos + screenSize.X * 0.28f, yPos + hudSize * 0.45f), Color.Orange, 0f, Vector2.Zero, (hudScale + 1.2f) / 2, SpriteEffects.None, 0f);
+
+                    // riot wall speed
+                    xPos += screenSize.X * 0.5f;
+                    yPos += hudSize * 0.7f;
+                    float circleSize = CIRCLE_SIZE * hudScale;
+                    float spaceBetweenCircles = SPACE_BETWEEN_CIRCLES * hudScale;
+                    float circleScale = (float)CIRCLE_SIZE / 64 * hudScale;
+                    float currentCircleScale = (float)CURRENT_CIRCLE_SIZE / 64 * hudScale;
+                    for (int i = 0; i < RiotGuardWall.getWallSpeedCount(); i++)
+                    {
+                        if (RiotGuardWall.getCurrentWallSpeedIndex() == i)
+                        {
+                            spriteBatch.Draw(TextureManager.Get("largecircle"), new Vector2(xPos, yPos), null, COLOR_CURRENT, 0, new Vector2(32, 32), currentCircleScale, SpriteEffects.None, 0);
+                        }
+                        float perc = (float)i / RiotGuardWall.getWallSpeedCount();
+                        spriteBatch.Draw(TextureManager.Get("largecircle"), new Vector2(xPos, yPos), null, Color.Lerp(COLOR_SLOW, COLOR_FAST, perc), 0, new Vector2(32, 32), circleScale, SpriteEffects.None, 0);
+                        xPos += circleSize + spaceBetweenCircles;
+                    }
+                }
+
+                // on-screen text
                 if (screenText.Length > 0)
                 {
                     spriteBatch.DrawString(FONT_PIXEL_LARGE, screenText, new Vector2((screenSize.X - 700) / 2, screenSize.Y / 2), Color.White);
                 }
-                else if (exclamationText.Length > 0)
+                else if (showExclamation &&  exclamationStrings != null && exclamationStrings.Length > 0)
                 {
-                    int width = exclamationText.Length * 17;
-                    spriteBatch.DrawString(FONT_EXCLAMATION, exclamationText, new Vector2((screenSize.X - width) / 2, screenSize.Y / 2), exclamationColor);
+                    float exclamationScale = (hudScale + 1.25f) / 2;
+                    float space = FONT_EXCLAMATION.MeasureString(" ").X;
+                    string fullString = "";
+                    foreach (string s in exclamationStrings)
+                        fullString += s + " ";
+                    fullString = fullString.Trim();
+                    Vector2 fullDimensions = FONT_EXCLAMATION.MeasureString(fullString);
+                    float initialPos = (screenSize.X - fullDimensions.X * exclamationScale) / 2;
+                    float offset = 0;
+                    for (int i = 0; i < exclamationStrings.Length; i++)
+                    {
+                        string s = exclamationStrings[i];
+                        Color c = exclamationColors[i];
+                        float stringWidth = FONT_EXCLAMATION.MeasureString(s).X;
+                        spriteBatch.DrawString(FONT_EXCLAMATION, s, new Vector2(initialPos + offset, (screenSize.Y * 0.8f - fullDimensions.Y * exclamationScale) / 2), c, 0, Vector2.Zero, exclamationScale, SpriteEffects.None, 0);
+                        offset += (stringWidth + space) * exclamationScale;
+                    }
                 }
-
-                //spriteBatchHUD.Draw(t, new Rectangle(120, 2, 20, 20), Color.White);
-                //spriteBatchHUD.Draw(t, new Rectangle(146, 2, 20, 20), Color.White);
-                spriteBatch.Draw(PIXEL, new Rectangle(172, 2, 20, 20), Color.White);
-                spriteBatch.Draw(PIXEL, new Rectangle(198, 2, 20, 20), Color.White);
-                spriteBatch.Draw(PIXEL, new Rectangle(224, 2, 20, 20), Color.White);
-                spriteBatch.Draw(PIXEL, new Rectangle(250, 2, 20, 20), Color.White);
-                spriteBatch.DrawString(FONT_DEBUG, "Score: " + score + "\nSand: " + availableSand, new Vector2(screenSize.X / 2, 0), Color.Orange, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
-                spriteBatch.DrawString(FONT_DEBUG, "Dist: " + (int)(Hero.instance.position.X - RiotGuardWall.wallPosition), new Vector2(screenSize.X - 130, 0), Color.Orange, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             }
         }
     }
