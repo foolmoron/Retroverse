@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 
-namespace LevelPipeline
+namespace Retroverse
 {
     public class LevelContent
     {
