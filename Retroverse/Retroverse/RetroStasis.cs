@@ -28,6 +28,14 @@ namespace Retroverse
         private static bool cancelRetroStasis = false;
         private static float retroStatisRecharge = 0;
 
+        public static void Initialize()
+        {
+            effectInnerRadius = 0;
+            effectOuterRadius = 0;
+            effectOutroModifier = 1f;
+            effectFinished = true;
+        }
+
         public static void Update(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds(1f);

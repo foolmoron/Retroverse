@@ -282,7 +282,6 @@ namespace Retroverse
             Game1.levelManager.scrollMultiplier = 3f;
             Game1.state = lastState;
             Game1.drawEffects = false;
-            RiotGuardWall.setReverse(false);
         }
 
 		private class HeroHistory
@@ -319,6 +318,8 @@ namespace Retroverse
             public float drillParticleSize;
             public float drillingTime;
 
+            public float riotWallPosition;
+
 			public HeroHistory()
 			{
 				position = Hero.instance.position;
@@ -348,6 +349,7 @@ namespace Retroverse
                 drillRight = new EmitterHistory(Hero.instance.drillEmitterRight);
                 drillParticleSize = Hero.instance.drillingRatio;
                 drillingTime = Hero.instance.drillingTime;
+                riotWallPosition = RiotGuardWall.wallPosition;
 			}
 
 			public void apply(float interp, History nextFrame)
@@ -408,6 +410,8 @@ namespace Retroverse
                 Hero.instance.drillEmitterLeft.Update(currentGameTime);
                 Hero.instance.drillEmitterRight.Update(currentGameTime);
                 Hero.instance.drillingTime = drillingTime;
+
+                RiotGuardWall.wallPosition = riotWallPosition;
 			}
 		}
 
@@ -638,7 +642,7 @@ namespace Retroverse
 				Hero.instance.ammo.Clear();
 				foreach (IndividualBulletHistory h in histories)
 				{
-                    Bullet b = new Bullet(h.textureName, h.hitbox, h.damage, h.position, h.velocity, h.rotation, h.scale, h.phasing, h.texFrame, h.trailHistory, h.explosionHistory, h.dying);
+                    Bullet b = new Bullet(h.textureName, h.hitbox, h.damage, h.position, h.velocity, h.distance, h.distanceLimit, h.rotation, h.scale, h.phasing, h.texFrame, h.trailHistory, h.explosionHistory, h.dying);
                     b.trailEmitter.position = b.position;
                     b.explosionEmitter.position = b.position;
                     b.trailEmitter.Update(currentGameTime);
@@ -669,7 +673,7 @@ namespace Retroverse
 						}
 						if (h2 == null)
 							continue;
-                        Bullet b = new Bullet(h1.textureName, h1.hitbox, h1.damage, h1.position * thisInterp + h2.position * interp, h1.velocity, h1.rotation, h1.scale, h1.phasing, h1.texFrame, h1.trailHistory, h1.explosionHistory, h1.dying);
+                        Bullet b = new Bullet(h1.textureName, h1.hitbox, h1.damage, h1.position * thisInterp + h2.position * interp, h1.velocity, h1.distance * thisInterp + h2.distance * interp, h1.distanceLimit, h1.rotation, h1.scale, h1.phasing, h1.texFrame, h1.trailHistory, h1.explosionHistory, h1.dying);
                         b.trailEmitter.position = b.position;
                         b.explosionEmitter.position = b.position;
                         b.trailEmitter.Update(currentGameTime);
@@ -686,7 +690,7 @@ namespace Retroverse
 					{
 						IndividualBulletHistory h1 = histories[i];
 						IndividualBulletHistory h2 = nextFrame.bulletState.histories[i];
-                        Bullet b = new Bullet(h1.textureName, h1.hitbox, h1.damage, h1.position * thisInterp + h2.position * interp, h1.velocity, h1.rotation, h1.scale, h1.phasing, h1.texFrame, h1.trailHistory, h1.explosionHistory, h1.dying);
+                        Bullet b = new Bullet(h1.textureName, h1.hitbox, h1.damage, h1.position * thisInterp + h2.position * interp, h1.velocity, h1.distance * thisInterp + h2.distance * interp, h1.distanceLimit, h1.rotation, h1.scale, h1.phasing, h1.texFrame, h1.trailHistory, h1.explosionHistory, h1.dying);
                         b.trailEmitter.position = b.position;
                         b.explosionEmitter.position = b.position;
                         b.trailEmitter.Update(currentGameTime);
@@ -703,6 +707,8 @@ namespace Retroverse
             public string textureName;
 			public Vector2 position;
             public Vector2 velocity;
+            public float distance;
+            public float distanceLimit;
             public float rotation;
             public float scale;
             public bool phasing;
@@ -719,6 +725,8 @@ namespace Retroverse
                 textureName = b.textureName;
 				position = b.position;
 				velocity = b.velocity;
+                distance = b.distance;
+                distanceLimit = b.distanceLimit;
                 rotation = b.rotation;
                 scale = b.scale;
                 phasing = b.phasing;

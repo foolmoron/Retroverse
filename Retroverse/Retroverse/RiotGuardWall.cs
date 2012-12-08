@@ -9,6 +9,7 @@ namespace Retroverse
 {
     public static class RiotGuardWall
     {
+        public static readonly float SCALE_RIOT_GUARD = 0.6f;
         public static string RIOTGUARD_TEXTURE_NAME = "riotguard1";
         public static Texture2D riotGuardTexture;
 
@@ -17,7 +18,9 @@ namespace Retroverse
         private static Vector2 wallPos;
         public static float wallPosition { get { return wallPos.X; } set { wallPos.X = value; } }
 
-        public static readonly float[] WALL_SPEEDS = new float[] { 40, 85, 110, 135, 155, 175, 200, 215, 230, 300, 500, 800, 1200 };
+        public const int WALL_SPEED_COUNT = 13;
+        public static readonly float[] WALL_SPEEDS = new float[WALL_SPEED_COUNT]                  { 20, 45, 80, 100, 130, 170, 270, 400, 600, 800, 1200, 1600, 3000 };
+        public static readonly float[] WALL_SPEED_UPGRADE_DISTANCES = new float[WALL_SPEED_COUNT] { 0,  7,  13, 17,  20,  23,  26,  28,  30,  31,  32,  33,  34}; //horizontal levels
         public static readonly float wallSpeedUpgradeTime = 80f; //seconds
         private static int wallSpeedIndex = 0;
         public static float wallSpeed = WALL_SPEEDS[0];
@@ -36,11 +39,14 @@ namespace Retroverse
         public static readonly int GUARD_HEIGHT_OFFSET_MIN = (int) (0.9f * -(NUMBER_OF_GUARDS / 2) * VERTICAL_POSITION_VARIATION);
         public static readonly int GUARD_HEIGHT_OFFSET_MAX = (int) (0.9f * (NUMBER_OF_GUARDS / 2 - 1) * VERTICAL_POSITION_VARIATION);
 
-        public static void Initialize()
+        public static void Initialize(int checkpoint)
         {
             riotGuardTexture = TextureManager.Get(RIOTGUARD_TEXTURE_NAME);
             wallPos = new Vector2(INITIAL_WALL_POSITION, 0);
-            int heroY = (int) Hero.instance.position.Y;
+            int heroY = (int)Hero.instance.position.Y;
+            wallSpeedIndex = 0;
+            wallSpeed = WALL_SPEEDS[0];
+            wallTime = 0;
             guards.Clear();
             for (int i = -NUMBER_OF_GUARDS / 2; i < NUMBER_OF_GUARDS / 2; i++)
                 guards.Add(new RiotGuard(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + i * VERTICAL_POSITION_VARIATION)));
@@ -88,15 +94,23 @@ namespace Retroverse
             if (!reversing)
             {
                 wallTime += seconds;
-                if (wallTime >= wallSpeedUpgradeTime)
+                if (wallSpeedIndex < WALL_SPEED_COUNT - 1)
                 {
-                    if (wallSpeedIndex < WALL_SPEEDS.Length)
+                    if (Hero.instance.levelX >= WALL_SPEED_UPGRADE_DISTANCES[wallSpeedIndex + 1])
                     {
                         wallSpeed = WALL_SPEEDS[++wallSpeedIndex];
                         Game1.pulseVignette();
                     }
-                    wallTime = 0;
                 }
+                //if (wallTime >= wallSpeedUpgradeTime)
+                //{
+                //    if (wallSpeedIndex < WALL_SPEEDS.Length)
+                //    {
+                //        wallSpeed = WALL_SPEEDS[++wallSpeedIndex];
+                //        Game1.pulseVignette();
+                //    }
+                //    wallTime = 0;
+                //}
             }
             else
             {
@@ -223,7 +237,7 @@ namespace Retroverse
 
             public void Draw(SpriteBatch spriteBatch)
             {
-                spriteBatch.Draw(riotGuardTexture, wallPos + position, null, Color.White, (float)Math.PI * 3 / 2, new Vector2(riotGuardTexture.Width / 2, riotGuardTexture.Height / 2), 0.6f, SpriteEffects.None, 0);
+                spriteBatch.Draw(riotGuardTexture, wallPos + position, null, Color.White, (float)Math.PI * 3 / 2, new Vector2(riotGuardTexture.Width / 2, riotGuardTexture.Height / 2), SCALE_RIOT_GUARD, SpriteEffects.None, 0);
             }
         }
     }

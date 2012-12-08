@@ -59,16 +59,19 @@ namespace Retroverse
         public static Emitter[] INTRO_WALLS_EMITTERS = new Emitter[8];
 
         // intro arena random collectable spawn values
+        public static readonly int UNREACHABLE_COLLECTABLES = 8;
         public static float collectableElapsedTime = 0;
         public static readonly float COLLECTABLE_SPAWN_TIME = 1f;
-        public static readonly int[] COLLECTABLE_LIMITS = new int[] { 10, 15, 20, 30, 30 };
+        public static readonly int[] COLLECTABLE_LIMITS = new int[] { 15, 10, 10, 20, 30 };
         public static int collectableLimit = COLLECTABLE_LIMITS[0];
         public static int numCollectablesCurrentlyOnScreen = 0;
+        public static int numCollectablesSpawnedThisPhase = 0;
 
         // radar values
         public static int RADAR_BORDER_WIDTH = 2;
         public static int RADAR_CELL_WIDTHHEIGHT = 20;
         public static Color RADAR_BORDER_COLOR = Color.White;
+        public static Color RADAR_WALL_INDICATOR_COLOR = Color.HotPink;
 
         // entities to remove on next frame
         public List<Collectable> collectablesToRemove = new List<Collectable>();
@@ -102,9 +105,9 @@ namespace Retroverse
             levels[xPos, yPos] = null;
         }
 
-        public void addEnemy(int x, int y, int type, Level l)
+        public void addEnemy(int x, int y, int type, Level l, bool forceSandToSpawn = false)
         {
-            l.enemies.Add(new Enemy(x, y, type, l));
+            l.enemies.Add(new Enemy(x, y, type, l, forceSandToSpawn));
         }
 
         public Prisoner addPrisoner(int x, int y, Color c, Level l)
@@ -292,7 +295,7 @@ namespace Retroverse
                         e.Update(gameTime);
                 scrolling = false;
                 collectableElapsedTime += seconds;
-                if (collectableElapsedTime >= COLLECTABLE_SPAWN_TIME && numCollectablesCurrentlyOnScreen < collectableLimit)
+                if (collectableElapsedTime >= COLLECTABLE_SPAWN_TIME && numCollectablesSpawnedThisPhase < collectableLimit)
                 {
                     collectableElapsedTime = 0;
                     int levelX = Hero.instance.levelX;
@@ -315,6 +318,7 @@ namespace Retroverse
                             {
                                 levels[levelX, levelY].collectables.Add(new Collectable(Level.TEX_SIZE * levelX + i * Level.TILE_SIZE + 16, Level.TEX_SIZE * levelY + j * Level.TILE_SIZE + 16, levelX, levelY, i, j));
                                 numCollectablesCurrentlyOnScreen++;
+                                numCollectablesSpawnedThisPhase++;
                             }
                         }
                     }
@@ -337,7 +341,7 @@ namespace Retroverse
                         if (l != null && l.collectables != null)
                             if (c is Prisoner)
                             {
-                                l.prisoners.Remove((Prisoner) c);
+                                l.removePrisoner((Prisoner) c);
                             }
                             else
                             {
@@ -433,7 +437,7 @@ namespace Retroverse
                         if (l != null && l.collectables != null)
                             if (c is Prisoner)
                             {
-                                l.prisoners.Remove((Prisoner)c);
+                                l.removePrisoner((Prisoner)c);
                             }
                             else
                             {
@@ -650,6 +654,7 @@ namespace Retroverse
 
         public void DrawRadar(SpriteBatch spriteBatch, float hudScale)
         {
+            int radarBaseHeight = (int)(1.2f * Game1.hudSize);
             int radarCellWidthHeight = (int)(RADAR_CELL_WIDTHHEIGHT * hudScale);
             for (int i = -1; i <= 1; i++)
                 for (int j = -1; j <= 1; j++)
@@ -666,20 +671,27 @@ namespace Retroverse
                         c = levels[x, y].color;
                     }
                     c.A = (byte)(c.A * 0.8); // translucentize it
-                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20) + ((i + 1) * radarCellWidthHeight), (int)(1.2f * Game1.hudSize) + ((j + 1) * radarCellWidthHeight), radarCellWidthHeight, radarCellWidthHeight), c);
+                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20) + ((i + 1) * radarCellWidthHeight), radarBaseHeight + ((j + 1) * radarCellWidthHeight), radarCellWidthHeight, radarCellWidthHeight), c);
                 }
             float tilePercX = (float)hero.tileX / LevelContent.LEVEL_SIZE;
             float tilePercY = (float)hero.tileY / LevelContent.LEVEL_SIZE;
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(Game1.screenSize.X - (radarCellWidthHeight * (2 - tilePercX) + 20)), (int)(1.2f * Game1.hudSize + radarCellWidthHeight * (1 + tilePercY)), RADAR_BORDER_WIDTH * 2, RADAR_BORDER_WIDTH * 2), Color.Goldenrod);
+            float heroIndicatorX = (Game1.screenSize.X - (radarCellWidthHeight * (2 - tilePercX) + 20));
+            float heroIndicatorY = (radarBaseHeight + radarCellWidthHeight * (1 + tilePercY));
+            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)heroIndicatorX, (int)heroIndicatorY, RADAR_BORDER_WIDTH * 2, RADAR_BORDER_WIDTH * 2), Color.Gold);
+            float wallOffset = RiotGuardWall.wallPosition - Hero.instance.position.X;
+            float wallOffsetPixels = wallOffset * radarCellWidthHeight / (float)Level.TEX_SIZE;
+            int wallCurrentLevel = (int) RiotGuardWall.wallPosition / Level.TEX_SIZE;
+            int wallLevelsBehind = hero.levelX - wallCurrentLevel;
+            if (wallLevelsBehind <= 1)
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(heroIndicatorX + wallOffsetPixels), radarBaseHeight, RADAR_BORDER_WIDTH * 3, (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH), RADAR_WALL_INDICATOR_COLOR);
             for (int i = 0; i < 4; i++)
             {
-                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20) + (i * radarCellWidthHeight), (int)(1.2f * Game1.hudSize), RADAR_BORDER_WIDTH, (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20) + (i * radarCellWidthHeight), radarBaseHeight, RADAR_BORDER_WIDTH, (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
             }
             for (int i = 0; i < 4; i++)
             {
-                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20), (int)(1.2f * Game1.hudSize) + (i * radarCellWidthHeight), (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH, RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)Game1.screenSize.X - (radarCellWidthHeight * 3 + 20), radarBaseHeight + (i * radarCellWidthHeight), (3 * radarCellWidthHeight) + RADAR_BORDER_WIDTH, RADAR_BORDER_WIDTH), RADAR_BORDER_COLOR);
             }
-
         }
 
         public void DrawDebug(SpriteBatch spriteBatch)

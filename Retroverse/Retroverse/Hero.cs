@@ -94,25 +94,40 @@ namespace Retroverse
         {
             position = new Vector2(Level.TEX_SIZE * LevelManager.STARTING_LEVEL.X + (Level.TILE_SIZE * (LevelManager.STARTING_TILE.X + 0.5f)), Level.TEX_SIZE * LevelManager.STARTING_LEVEL.Y + (Level.TILE_SIZE * (LevelManager.STARTING_TILE.Y + 0.5f)));
             setCurrentLevelAndTile();
-            this.setTexture("hero");
+            this.setTexture("player2");
             direction = Direction.Up;
             ammo = new List<Bullet>();
             instance = this;
-            powerupBoost = 0;
-            powerupDrill = 0;
-            powerupGun = 0;
-            powerupRetro = 0;
-            powerupRadar = 0;
             scale = 0.5f;
         }
 
-        public static void Initialize()
+        public static void Initialize(int checkpoint)
         {
-            instance.InitializeHero();
+            instance.InitializeHero(checkpoint);
         }
 
-        private void InitializeHero()
+        private void InitializeHero(int checkpoint)
         {
+            if (checkpoint < 5)
+            {
+                powerupRadar = 0;
+                if (checkpoint < 4)
+                {
+                    powerupDrill = 0;
+                    if (checkpoint < 3)
+                    {
+                        powerupRetro = 0;
+                        if (checkpoint < 2)
+                        {
+                            powerupGun = 0;
+                            if (checkpoint < 1)
+                            {
+                                powerupBoost = 0;
+                            }
+                        }
+                    }
+                }
+            }
             leftBoosterFiring = Emitter.getPrebuiltEmitter(PrebuiltEmitter.RocketBoostFire);
             rightBoosterFiring = Emitter.getPrebuiltEmitter(PrebuiltEmitter.RocketBoostFire);
             leftBoosterIdle = Emitter.getPrebuiltEmitter(PrebuiltEmitter.IdleBoostFire);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
+using System.IO;
 
 namespace Retroverse
 {
@@ -38,11 +39,15 @@ namespace Retroverse
             catch (ArgumentException e) { }
         }
 
-        public static void SetContent(ContentManager _content)
+        public static void LoadSprites(ContentManager content)
         {
-            if (content != null)
-                throw new Exception("ONLY CALL THIS ONCE");
-            content = _content;
+            TextureManager.content = content;
+            FileInfo[] filePaths = new DirectoryInfo(content.RootDirectory + "\\Sprites").GetFiles("*.*");
+            foreach (FileInfo file in filePaths)
+            {
+                string key = file.Name.Split('.')[0];
+                textures.Add(key, content.Load<Texture2D>("Sprites\\" + file.Name.Split('.')[0]));
+            }
         }
     }
 }

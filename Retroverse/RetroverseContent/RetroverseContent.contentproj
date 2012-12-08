@@ -226,6 +226,11 @@
       <Importer>TextureImporter</Importer>
       <Processor>FontTextureProcessor</Processor>
     </Compile>
+    <Compile Include="Fonts\pixel98.bmp">
+      <Name>pixel98</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
     <Content Include="nameprefixes.txt">
       <Name>nameprefixes</Name>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -294,11 +299,6 @@
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
-    <Compile Include="Sprites\radaricon.png">
-      <Name>radaricon</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
     <Compile Include="Sprites\drillicon.png">
       <Name>drillicon</Name>
       <Importer>TextureImporter</Importer>
@@ -316,11 +316,6 @@
     </Compile>
     <Compile Include="Sprites\retroicon2.png">
       <Name>retroicon2</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
-    <Compile Include="Sprites\retroicon.png">
-      <Name>retroicon</Name>
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
@@ -376,6 +371,51 @@
     </Compile>
     <Compile Include="Sprites\boosticon1.png">
       <Name>boosticon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\chargeshoticon2.png">
+      <Name>chargeshoticon2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\collectable3.png">
+      <Name>collectable3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\drilliconredo1.png">
+      <Name>drilliconredo1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\drilliconredo2.png">
+      <Name>drilliconredo2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\player2.png">
+      <Name>player2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\radaricon1.png">
+      <Name>radaricon1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\sideshoticon2.png">
+      <Name>sideshoticon2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\riotguardangry.png">
+      <Name>riotguardangry</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\sandiconhud.png">
+      <Name>sandiconhud</Name>
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>

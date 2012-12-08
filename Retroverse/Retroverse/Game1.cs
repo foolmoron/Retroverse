@@ -69,6 +69,7 @@ namespace Retroverse
         // screens
         public static GameState lastState;
         public static SpriteFont FONT_PIXEL_LARGE;
+        public static SpriteFont FONT_PIXEL_HUGE;
         public static string screenText;
 
         // fps counter
@@ -93,7 +94,7 @@ namespace Retroverse
         public static SpriteFont FONT_EXCLAMATION;
         private static string[] exclamationStrings;
         private static Color[] exclamationColors;
-        private static float exclamationDuration;
+        private static float exclamationDurationSecs;
         private static float currentExclamationTime;
 
         // score and sand management
@@ -105,6 +106,7 @@ namespace Retroverse
         public static LevelManager levelManager = new LevelManager();
         Song Aragonaise;
         bool songstart = false;
+        public static int checkpoint = 4;
 
         public Game1()
         {
@@ -201,54 +203,25 @@ namespace Retroverse
         /// </summary>
         protected override void LoadContent()
         {
-            //load sprites
-            TextureManager.SetContent(Content);
-            TextureManager.Add("hero");
-            TextureManager.Add("collectable1");
-            TextureManager.Add("GunPower");
-            TextureManager.Add("BootPower");
-            TextureManager.Add("circle");
-            TextureManager.Add("largecircle");
-            TextureManager.Add("prisoner1");
-            TextureManager.Add("prisonerhat1");
-            TextureManager.Add("riotguard1");
-            TextureManager.Add("bullet1");
-            TextureManager.Add("bullet2");
-            TextureManager.Add("chargebullet1");
-            TextureManager.Add("chargebullet2");
-            TextureManager.Add("chargebullet3");
-            TextureManager.Add("enemy1");
-            TextureManager.Add("enemy2");
-            TextureManager.Add("enemy3");
-            TextureManager.Add("enemy4");
-            TextureManager.Add("sandicon");
-            TextureManager.Add("gunicon");
-            TextureManager.Add("sideshoticon1");
-            TextureManager.Add("forwardshoticon1");
-            TextureManager.Add("chargeshoticon1");
-            TextureManager.Add("boosticon");
-            TextureManager.Add("boosticon", 2);
-            TextureManager.Add("radaricon");
-            TextureManager.Add("retroicon");
-            TextureManager.Add("retroicon", 2);
-            TextureManager.Add("drillicon");
-            TextureManager.Add("drillicon", 2);
-            TextureManager.Add("fairyglow", 4);
+            //load sprites automatically so you don't need to put in a new line every time you add a new sprite
+            TextureManager.LoadSprites(Content);
 
             FONT_DEBUG = Content.Load<SpriteFont>("Fonts\\debug");
             FONT_EXCLAMATION = Content.Load<SpriteFont>("Fonts\\pixel28"); /* http://www.dafont.com/visitor.font + http://xbox.create.msdn.com/en-US/education/catalog/utility/bitmap_font_maker */
             FONT_PIXEL_SMALL = Content.Load<SpriteFont>("Fonts\\pixel23");
             FONT_PIXEL_LARGE = Content.Load<SpriteFont>("Fonts\\pixel48");
+            FONT_PIXEL_HUGE = Content.Load<SpriteFont>("Fonts\\pixel98");
             FONT_HUD_KEYS = Content.Load<SpriteFont>("Fonts\\keys36"); /* http://www.fontspace.com/flop-design/keymode-alphabet */
+
 
             //load sounds
             Aragonaise = Content.Load<Song>("Audio\\Waves\\Aragonaise");
             MediaPlayer.IsRepeating = true;
 
             //misc loads/inits
-            Hero.Initialize();
+            Hero.Initialize(0);
             Names.Initialize();
-            RiotGuardWall.Initialize();
+            RiotGuardWall.Initialize(0);
 
             //create graphics ojects
             graphicsDevice = GraphicsDevice;
@@ -272,28 +245,46 @@ namespace Retroverse
         }
 
         // Reset game from game over to start over again
-        public static void Reset()
+        public static void Reset(int checkpointToResetTo = 0)
         {
+            // Levels
             Level.Initialize();
             levelManager.addLevel(new Level(introLevelTemplate, LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y), LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y);
             for (int i = -1; i <= 1; i++)
                 for (int j = -1; j <= 1; j++)
                     if (i != 0 || j != 0)
-                        //levelManager.addLevel(new Level(levelTemplates.ElementAt(rand.Next(levelTemplates.Keys.Count)).Value, LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j), LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j);
-                        levelManager.addLevel(new Level(levelTemplates["rachel4"], LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j), LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j);
+                        levelManager.addLevel(new Level(levelTemplates.ElementAt(rand.Next(levelTemplates.Keys.Count)).Value, LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j), LevelManager.STARTING_LEVEL.X + i, LevelManager.STARTING_LEVEL.Y + j);
             if (state != GameState.Escape)
             {
-                exclamationDuration = 0;
+                // Game1
+                score = 0;
+                availableSand = (checkpointToResetTo >= 3) ? 1 : 0;
+                retroStatisActive = false;
+                currentEffect = null;
+                drawEffects = false;
+
+                // HUD
+                exclamationDurationSecs = 0;
                 currentExclamationTime = 0;
                 HUD.showExclamation = false;
+
+                // LevelManager
                 levelManager.position = new Vector2(LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE + Level.TILE_SIZE / 2, LevelManager.STARTING_LEVEL.Y * Level.TEX_SIZE - levelOffsetFromHUD - Level.TILE_SIZE * 2f);
-                levelManager.hero = new Hero();
+                Hero newHero = new Hero();
+                newHero.powerupBoost = levelManager.hero.powerupBoost;
+                newHero.powerupGun = levelManager.hero.powerupGun;
+                newHero.powerupRetro = levelManager.hero.powerupRetro;
+                newHero.powerupDrill = levelManager.hero.powerupDrill;
+                newHero.powerupRadar = levelManager.hero.powerupRadar;
+                levelManager.hero = newHero;
                 levelManager.setCenterEntity(levelManager.hero);
                 levelManager.initializeArena();
-                availableSand = 0;
-                Powerups.Initialize();
-                Hero.Initialize();
-                RiotGuardWall.Initialize();
+
+                // Other components
+                Powerups.Initialize(checkpointToResetTo);
+                Hero.Initialize(checkpointToResetTo);
+                RiotGuardWall.Initialize(checkpointToResetTo);
+                History.clearFrames();
             }
             else
             {
@@ -320,8 +311,14 @@ namespace Retroverse
         {
             float seconds = gameTime.getSeconds();
             Controller.Update(gameTime);
-            if (state == GameState.Arena || state == GameState.Escape || state == GameState.RetroPort) 
+            if (state == GameState.Arena || state == GameState.Escape || state == GameState.RetroPort)
             {
+                if (songstart)
+                {
+                    MediaPlayer.Stop();
+                    songstart = false;
+                }
+
                 currentEffect = null;
                 drawEffects = false;
                 switch (state)
@@ -373,12 +370,14 @@ namespace Retroverse
                     effectRadiusMultiplier *= -1;
                 }
 
-                //if (!songstart)
-                //{
-                //    MediaPlayer.Play(Aragonaise);
-                //    songstart = true;
-                //}
-
+            }
+            if (state == GameState.GameOverScreen)
+            {
+                if (!songstart)
+                {
+                    MediaPlayer.Play(Aragonaise);
+                    songstart = true;
+                }
             }
             HUD.Update(gameTime);
             base.Update(gameTime);
@@ -401,7 +400,7 @@ namespace Retroverse
                     state = lastState;
                     break;
                 case GameState.GameOverScreen:
-                    Reset();
+                    Reset(checkpoint);
                     state = GameState.StartScreen;
                     break;
             }
@@ -454,11 +453,11 @@ namespace Retroverse
         {
             exclamationStrings = new string[] { message };
             exclamationColors = new Color[] { color };
-            exclamationDuration = duration;
+            exclamationDurationSecs = duration;
             currentExclamationTime = 0;
         }
 
-        public static void showExclamation(string[] strings, Color[] colors, float duration)
+        public static void showExclamation(string[] strings, Color[] colors, float durationSecs)
         {
             if (strings.Length == 0 || colors.Length == 0 || strings.Length != colors.Length)
             {
@@ -466,7 +465,7 @@ namespace Retroverse
             }
             exclamationStrings = strings;
             exclamationColors = colors;
-            exclamationDuration = duration;
+            exclamationDurationSecs = durationSecs;
             currentExclamationTime = 0;
         }
 
@@ -494,7 +493,7 @@ namespace Retroverse
                 case GameState.GameOverScreen:
                     screenText = "       << Game Over >>\n" +
                                  "       Press ENTER to \n" +
-                                 "      start a new game";
+                                 "       go to checkpoint";
                     break;
             }
 
@@ -547,7 +546,7 @@ namespace Retroverse
             spriteBatchHUD.DrawString(FONT_DEBUG, "FPS: " + framerate.ToString("00.0"), new Vector2(15, hudSize), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             if (DEBUG)
             {
-                spriteBatchHUD.DrawString(FONT_DEBUG, "Hero: " + Hero.instance.tileX + "/" + Hero.instance.tileY + "\nCell: " + levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].cellName + "\nWall Spd: " + RiotGuardWall.wallSpeed, new Vector2(350, hudSize + 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                spriteBatchHUD.DrawString(FONT_DEBUG, "Hero: " + Hero.instance.tileX + "/" + Hero.instance.tileY + "\nCell: " + levelManager.levels[Hero.instance.levelX, Hero.instance.levelY].cellName + "\nWall Spd: " + RiotGuardWall.wallSpeed + "\nEnemy limit: " + Powerups.ENEMY_LIMITS_TOTAL_SPAWNED[Powerups.currentEnemyDifficulty] + "\nEnemy count: " + Powerups.enemiesSpawnedThisPhase, new Vector2(350, hudSize + 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             }
             if (state == GameState.PauseScreen || state == GameState.StartScreen)
             {
@@ -556,10 +555,10 @@ namespace Retroverse
                 else
                     spriteBatchHUD.DrawString(FONT_DEBUG, "DPAD/Sticks to MOVE\n(RB) to BOOST\n(A) to SHOOT\n(X) to RETRO\n\n(Start) to PAUSE\n[L] to change screen size", new Vector2(15, hudSize + 30), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
                 
-                spriteBatchHUD.DrawString(FONT_DEBUG, "Ver. ALPHA 0.13.1", new Vector2(screenSize.X - 210, hudSize), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                spriteBatchHUD.DrawString(FONT_DEBUG, "Ver. ALPHA 0.4.1", new Vector2(screenSize.X - 210, hudSize), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
 
                 if (state == GameState.PauseScreen)
-                    spriteBatchHUD.DrawString(FONT_DEBUG, "[F12] to GAME OVER", new Vector2(15, hudSize + 190), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
+                    spriteBatchHUD.DrawString(FONT_DEBUG, "[F12] to RESET GAME", new Vector2(15, hudSize + 190), Color.White, 0f, Vector2.Zero, 1, SpriteEffects.None, 0f);
             }
 
             if (drawVignette)
@@ -582,12 +581,46 @@ namespace Retroverse
             public static readonly int CELL_SIZE = 20;
             public static readonly int SPACE_BETWEEN_CELLS = 4;
 
-            public static readonly Color COLOR_SLOW = Color.Red;
-            public static readonly Color COLOR_FAST = Color.Lime;
+            public static readonly Color COLOR_SLOW = Color.Lime;
+            public static readonly Color COLOR_FAST = Color.Red;
             public static readonly Color COLOR_CURRENT = Color.White;
             public static readonly int CIRCLE_SIZE = 10;
             public static readonly int CURRENT_CIRCLE_SIZE = 13;
+            public static readonly int HUD_GUARD_SIZE = 20;
             public static readonly int SPACE_BETWEEN_CIRCLES = 4;
+
+            public static readonly Color SCORE_BORDER_COLOR = new Color(25, 184, 236);
+            public static readonly Color[] SCORE_TEXT_COLORS = new Color[10] {
+                new Color(255, 255, 255),
+                new Color(255, 50, 50),
+                
+                new Color(150, 60, 255),
+                new Color(255, 165, 0),
+                
+                new Color(255, 255, 50),
+                new Color(50, 255, 50),
+                
+                new Color(255, 105, 180),
+                new Color(220, 130, 80),
+                
+                new Color(40, 140, 40),
+                new Color(12, 238, 188),
+            };
+            public static readonly Color SCORE_TEXT_COLOR_ZERO = Color.Gray;
+            public static readonly int SCORE_DIGITS = 8;
+            public static readonly int SCORE_BORDER_WIDTHHEIGHT = 2;
+            public static readonly float SCORE_CELL_RELATIVEWIDTH = 0.048f;
+            public static readonly float SCORE_CELL_RELATIVEHEIGHT = 0.50f;
+            public static readonly float SCORE_TEXT_BASE_SCALE = 0.3f;
+
+            public static readonly float RELATIVESPACE_BETWEEN_SCORE_AND_SAND = 0.23f;
+
+            //public static readonly int SAND_PER_ROW = 5;
+            public static readonly int SAND_SIZE = 17;
+            public static readonly int SPACE_BETWEEN_SAND = 1;
+
+            public static readonly float WALL_SPEED_POSITION_RELATIVE_X = 0.74f;
+            public static readonly float WALL_SPEED_POSITION_RELATIVE_Y = 0.70f;
 
             public static readonly float[] HUD_SCALES = { 1f, 1.30f, 1.60f, 1.95f };
             public static float hudScale = 1f;
@@ -599,10 +632,10 @@ namespace Retroverse
                 hudScale = HUD_SCALES[(int)currentScreenSizeMode];
 
                 showExclamation = false;
-                if (exclamationDuration > 0)
+                if (exclamationDurationSecs > 0)
                 {
                     currentExclamationTime += seconds;
-                    if (currentExclamationTime <= exclamationDuration)
+                    if (currentExclamationTime <= exclamationDurationSecs)
                         showExclamation = true;
                 }
             }
@@ -662,7 +695,7 @@ namespace Retroverse
                             break;
                         case 4:
                             if (Hero.instance.powerupRadar == 1)
-                                powerupIcon = TextureManager.Get("radaricon");
+                                powerupIcon = TextureManager.Get("radaricon1");
                             break;
                     }
                     float powerupCharge = Hero.instance.getPowerupCharge(i);
@@ -686,23 +719,62 @@ namespace Retroverse
                         }
                     xPos += cellSize;
                 }
+                xPos += 2 * spaceBetweenCells;
 
-                // hud text
-                float centerPos = xPos + spaceBetweenCells * 2;
-                spriteBatch.DrawString(FONT_DEBUG, "Score: " + score + "\n\"Sand\": " + availableSand, new Vector2(centerPos, 0), Color.Orange, 0f, Vector2.Zero, (hudScale + 1.2f) / 2, SpriteEffects.None, 0f);
+                // score
+                float xPosScore = xPos;
+                float yPosScore = yPos;
+                float scoreBorderWidthHeight = SCORE_BORDER_WIDTHHEIGHT * hudScale;
+                for (int i = 0; i <= SCORE_DIGITS; i++)
+                {
+                    spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(xPosScore + i * SCORE_CELL_RELATIVEWIDTH * screenSize.X), (int)(yPosScore), (int)scoreBorderWidthHeight, (int)(SCORE_CELL_RELATIVEHEIGHT * hudSize + scoreBorderWidthHeight)), SCORE_BORDER_COLOR);
+                }
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(xPosScore), (int)(yPosScore), (int)(SCORE_DIGITS * SCORE_CELL_RELATIVEWIDTH * screenSize.X + scoreBorderWidthHeight), (int)scoreBorderWidthHeight), SCORE_BORDER_COLOR);
+                spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)(xPosScore), (int)(yPosScore + SCORE_CELL_RELATIVEHEIGHT * hudSize), (int)(SCORE_DIGITS * SCORE_CELL_RELATIVEWIDTH * screenSize.X + scoreBorderWidthHeight), (int)scoreBorderWidthHeight), SCORE_BORDER_COLOR);
+                xPosScore += (SCORE_CELL_RELATIVEWIDTH * screenSize.X) / 2;
+                yPosScore += (SCORE_CELL_RELATIVEHEIGHT * hudSize) / 2;
+                float scoreTextScale = SCORE_TEXT_BASE_SCALE * hudScale;
+                for(int i = SCORE_DIGITS - 1; i >= 0; i--)
+                {
+                    int dividedScore = score / (int)Math.Pow(10, i); 
+                    int digit = dividedScore % 10;   
+                    Color dcolor = (dividedScore == 0) ? SCORE_TEXT_COLOR_ZERO : SCORE_TEXT_COLORS[digit];
+                    string dstring = "" + digit;
+                    Vector2 dimensions = FONT_PIXEL_HUGE.MeasureString(dstring);
+                    spriteBatch.DrawString(FONT_PIXEL_HUGE, "" + digit, new Vector2(xPosScore, yPosScore), dcolor, 0, dimensions / 2, scoreTextScale, SpriteEffects.None, 0);
+                    xPosScore += (SCORE_CELL_RELATIVEWIDTH * screenSize.X);
+                }
+
+                // sand
+                float xPosSand = xPos;
+                float yPosSand = (int)(yPos + (RELATIVESPACE_BETWEEN_SCORE_AND_SAND + SCORE_CELL_RELATIVEHEIGHT) * hudSize);
+                float sandSize = SAND_SIZE * hudScale;
+                xPosSand += SAND_SIZE / 2;
+                float spaceBetweenSand = SPACE_BETWEEN_SAND * hudScale;
+                float sandScale = (float)SAND_SIZE / 64 * hudScale;
+                for (int i = 0; i < availableSand; i++)
+                {
+                    spriteBatch.Draw(TextureManager.Get("sandiconhud"), new Vector2(xPosSand, yPosSand), null, Color.White, 0, new Vector2(32, 32), sandScale, SpriteEffects.None, 0);
+                    xPosSand += sandSize + spaceBetweenSand;
+                }
 
                 if (Hero.instance.powerupRadar == 1)
                 {
-                    spriteBatch.DrawString(FONT_DEBUG, "Wall Dist: " + (int)(Hero.instance.position.X - RiotGuardWall.wallPosition), new Vector2(centerPos + screenSize.X * 0.28f, 0), Color.Orange, 0f, Vector2.Zero, (hudScale + 1.2f) / 2, SpriteEffects.None, 0f);
-                    spriteBatch.DrawString(FONT_DEBUG, "Wall Spd: ", new Vector2(centerPos + screenSize.X * 0.28f, yPos + hudSize * 0.45f), Color.Orange, 0f, Vector2.Zero, (hudScale + 1.2f) / 2, SpriteEffects.None, 0f);
-
                     // riot wall speed
-                    xPos += screenSize.X * 0.5f;
-                    yPos += hudSize * 0.7f;
+                    xPos = screenSize.X * WALL_SPEED_POSITION_RELATIVE_X;
+                    yPos = hudSize * WALL_SPEED_POSITION_RELATIVE_Y;
                     float circleSize = CIRCLE_SIZE * hudScale;
                     float spaceBetweenCircles = SPACE_BETWEEN_CIRCLES * hudScale;
                     float circleScale = (float)CIRCLE_SIZE / 64 * hudScale;
                     float currentCircleScale = (float)CURRENT_CIRCLE_SIZE / 64 * hudScale;
+                    float guardScale = (float)HUD_GUARD_SIZE / 64 * hudScale;
+                    float guardToCircleScaleRatio = guardScale / currentCircleScale;
+
+                    spriteBatch.DrawString(FONT_PIXEL_SMALL, "Dist: " + (int)(Hero.instance.position.X - RiotGuardWall.wallPosition), new Vector2(xPos, 0), Color.Orange, 0f, Vector2.Zero, hudScale * 0.8f, SpriteEffects.None, 0f);
+
+                    xPos -= (circleSize + spaceBetweenCircles) + ((circleSize + spaceBetweenCircles) * (guardToCircleScaleRatio - 1));
+                    spriteBatch.Draw(TextureManager.Get("riotguard1"), new Vector2(xPos, yPos), null, COLOR_CURRENT, (float)Math.PI * 3 / 2, new Vector2(32, 32), guardScale, SpriteEffects.None, 0);
+                    xPos += (circleSize + spaceBetweenCircles) + ((circleSize + spaceBetweenCircles) * (guardToCircleScaleRatio - 1));
                     for (int i = 0; i < RiotGuardWall.getWallSpeedCount(); i++)
                     {
                         if (RiotGuardWall.getCurrentWallSpeedIndex() == i)
@@ -713,6 +785,8 @@ namespace Retroverse
                         spriteBatch.Draw(TextureManager.Get("largecircle"), new Vector2(xPos, yPos), null, Color.Lerp(COLOR_SLOW, COLOR_FAST, perc), 0, new Vector2(32, 32), circleScale, SpriteEffects.None, 0);
                         xPos += circleSize + spaceBetweenCircles;
                     }
+                    xPos += ((circleSize + spaceBetweenCircles) * (guardToCircleScaleRatio - 1));
+                    spriteBatch.Draw(TextureManager.Get("riotguardangry"), new Vector2(xPos, yPos), null, COLOR_CURRENT, (float)Math.PI * 3 / 2, new Vector2(32, 32), guardScale, SpriteEffects.None, 0);
                 }
 
                 // on-screen text

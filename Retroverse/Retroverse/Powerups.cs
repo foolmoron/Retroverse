@@ -11,8 +11,8 @@ namespace Retroverse
     public static class Powerups
     {
         public static readonly int TILE_SNAP_DISTANCE = 10;
-        public static readonly int COLLECTABLES_FOR_BOOST = 5;
-        public static readonly int COLLECTABLES_FOR_GUN = 10;
+        public static readonly int COLLECTABLES_FOR_BOOST = 3;
+        public static readonly int COLLECTABLES_FOR_GUN = 5;
         public static readonly int SAND_FOR_RETRO = 3;
         public static readonly int COLLECTABLES_FOR_DRILL = 5;
 
@@ -27,10 +27,13 @@ namespace Retroverse
         private static Powerup radarPowerup;
         private static Powerup currentPowerup;
 
-        private static int currentEnemyDifficulty = 1;
+        private static int previousEnemyDifficulty = 0;
+        public static int currentEnemyDifficulty = 1;
         private static readonly float ENEMY_SPAWN_INTERVAL = 3f;
         private static float enemyTimer = 0;
-        private static readonly int[] ENEMY_LIMITS = { 0, 3, 5, 15, 40 };
+        private static readonly int[] ENEMY_LIMITS_SAME_TIME = { 0, 3, 5, 15, 40 };
+        public static readonly int[] ENEMY_LIMITS_TOTAL_SPAWNED = { 0, 3, 10, 30, 40 };
+        public static int enemiesSpawnedThisPhase = 0;
         private static readonly int MIN_ENEMIES_ON_SCREEN_AT_ALL_TIMES_HARDEST_MODE = 10;
         private static readonly int MIN_SPAWN_DISTANCE_FROM_HERO = 10;
         private static readonly int[][] enemySpawnLocationsEasy = new int[][]
@@ -72,33 +75,65 @@ namespace Retroverse
         private static Powerup[] debugPowerups = new Powerup[] 
         {
             new Powerup(0, 0, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostInitial, true),
-            new Powerup(0, 0, TextureManager.Get("boosticon1"), DEFAULT_YELLOW, PowerupType.BoostConstant, true),
-            new Powerup(0, 0, TextureManager.Get("boosticon2"), DEFAULT_YELLOW, PowerupType.BoostBurst, true),
+            new Powerup(0, 0, TextureManager.Get("boosticon1"), DEFAULT_YELLOW, PowerupType.BoostBurst, true),
+            new Powerup(0, 0, TextureManager.Get("boosticon2"), DEFAULT_YELLOW, PowerupType.BoostConstant, true),
             new Powerup(0, 0, TextureManager.Get("gunicon"), DEFAULT_YELLOW, PowerupType.GunInitial, true),
             new Powerup(0, 0, TextureManager.Get("forwardshoticon1"), DEFAULT_YELLOW, PowerupType.GunStraight, true),
-            new Powerup(0, 0, TextureManager.Get("sideshoticon1"), DEFAULT_YELLOW, PowerupType.GunSide, true),
-            new Powerup(0, 0, TextureManager.Get("chargeshoticon1"), DEFAULT_YELLOW, PowerupType.GunCharge, true),
-            new Powerup(0, 0, TextureManager.Get("retroicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true),
+            new Powerup(0, 0, TextureManager.Get("sideshoticon2"), DEFAULT_YELLOW, PowerupType.GunSide, true),
+            new Powerup(0, 0, TextureManager.Get("chargeshoticon2"), DEFAULT_YELLOW, PowerupType.GunCharge, true),
+            new Powerup(0, 0, TextureManager.Get("sandicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true),
             new Powerup(0, 0, TextureManager.Get("retroicon1"), DEFAULT_YELLOW, PowerupType.RetroPort, true),
             new Powerup(0, 0, TextureManager.Get("retroicon2"), DEFAULT_YELLOW, PowerupType.RetroStasis, true),
-            new Powerup(0, 0, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial, true),
-            new Powerup(0, 0, TextureManager.Get("drillicon1"), DEFAULT_YELLOW, PowerupType.DrillSingle, true),
-            new Powerup(0, 0, TextureManager.Get("drillicon2"), DEFAULT_YELLOW, PowerupType.DrillTriple, true),
-            new Powerup(0, 0, TextureManager.Get("radaricon"), DEFAULT_YELLOW, PowerupType.Radar, true),
+            new Powerup(0, 0, TextureManager.Get("drilliconredo1"), DEFAULT_YELLOW, PowerupType.DrillInitial, true),
+            new Powerup(0, 0, TextureManager.Get("drilliconredo1"), DEFAULT_YELLOW, PowerupType.DrillSingle, true),
+            new Powerup(0, 0, TextureManager.Get("drilliconredo2"), DEFAULT_YELLOW, PowerupType.DrillTriple, true),
+            new Powerup(0, 0, TextureManager.Get("radaricon1"), DEFAULT_YELLOW, PowerupType.Radar, true),
         };
 
-        public static void Initialize()
+        public static void Initialize(int checkpoint)
         {
             enabled = true;
-            radarPowerup = new Powerup(20, 17, TextureManager.Get("radaricon"), Color.HotPink, PowerupType.Radar);
-            radarPowerup.ableToBeCollected = true;
-            currentPowerup = new Powerup(15, 29, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostInitial, true);
-            currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_BOOST;
+            if (checkpoint < 5)
+            {
+                radarPowerup = new Powerup(20, 17, TextureManager.Get("radaricon1"), Color.HotPink, PowerupType.Radar);
+                radarPowerup.ableToBeCollected = true;
+            }
+            currentPowerup = null;
+            previousEnemyDifficulty = -1;
+            currentEnemyDifficulty = 0;
+            switch (checkpoint)
+            {
+                case 0:
+                    currentPowerup = new Powerup(15, 29, TextureManager.Get("boosticon"), DEFAULT_YELLOW, PowerupType.BoostInitial, true);
+                    currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_BOOST;
+                            currentEnemyDifficulty = 0;
+                    break;
+                case 1:
+                    currentPowerup = new Powerup(29, 15, TextureManager.Get("gunicon"), DEFAULT_YELLOW, PowerupType.GunInitial, true);
+                    currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_GUN;
+                            currentEnemyDifficulty = 1;
+                    break;
+                case 2:
+                    currentPowerup = new Powerup(15, 1, TextureManager.Get("sandicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
+                    currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
+                            currentEnemyDifficulty = 2;
+                    break;
+                case 3:
+                    currentPowerup = new Powerup(1, 15, TextureManager.Get("drilliconredo1"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
+                    currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_DRILL;
+                            currentEnemyDifficulty = 3;
+                    break;
+                case 4:
+                    break;
+                case 5:
+                    Game1.levelManager.targetZoom = LevelManager.ZOOM_ESCAPE;
+                    break;
+            }
             powerups.Clear();
             powerupsToRemove.Clear();
-            powerupsToAdd.Clear();    
+            powerupsToAdd.Clear();
+            if (currentPowerup != null)
             powerups.Add(currentPowerup);    
-            currentEnemyDifficulty = 0;
             enemyTimer = 0;
         }
 
@@ -120,7 +155,13 @@ namespace Retroverse
                     p.UpdateDebug(gameTime);
             }
 
-            LevelManager.collectableLimit = LevelManager.COLLECTABLE_LIMITS[currentEnemyDifficulty];
+            if (previousEnemyDifficulty != currentEnemyDifficulty)
+            {
+                LevelManager.collectableLimit = LevelManager.COLLECTABLE_LIMITS[currentEnemyDifficulty];
+                LevelManager.numCollectablesSpawnedThisPhase = 0;
+                enemiesSpawnedThisPhase = 0;
+            }
+            previousEnemyDifficulty = currentEnemyDifficulty;
 
             enemyTimer += gameTime.getSeconds();
             if (enemyTimer >= ENEMY_SPAWN_INTERVAL)
@@ -134,7 +175,7 @@ namespace Retroverse
                 if (currentEnemyDifficulty > 3)
                 {
                     Level introLevel = Game1.levelManager.levels[LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y];
-                    while (introLevel.enemies.Count < MIN_ENEMIES_ON_SCREEN_AT_ALL_TIMES_HARDEST_MODE)
+                    while (introLevel.enemies.Count < MIN_ENEMIES_ON_SCREEN_AT_ALL_TIMES_HARDEST_MODE && enemiesSpawnedThisPhase < ENEMY_LIMITS_TOTAL_SPAWNED[currentEnemyDifficulty])
                     {
                         spawnRandomEnemy(enemySpawnLocationsHard);
                     }
@@ -145,8 +186,11 @@ namespace Retroverse
         private static void spawnRandomEnemy(int[][] locations)
         {
             Level introLevel = Game1.levelManager.levels[LevelManager.STARTING_LEVEL.X, LevelManager.STARTING_LEVEL.Y];
-            if (introLevel.enemies.Count >= ENEMY_LIMITS[currentEnemyDifficulty])
+            if (introLevel.enemies.Count >= ENEMY_LIMITS_SAME_TIME[currentEnemyDifficulty])
                 return;
+            if (enemiesSpawnedThisPhase >= ENEMY_LIMITS_TOTAL_SPAWNED[currentEnemyDifficulty])
+                return;
+            bool forceSand = currentEnemyDifficulty == 2 && (enemiesSpawnedThisPhase % 3 == 0);
             bool foundLocation = false;
             int attempts = 0;
             int[] location = null;
@@ -160,7 +204,8 @@ namespace Retroverse
                 }
                 attempts++;
             }
-            Game1.levelManager.addEnemy(location[0], location[1], Game1.rand.Next(Enemy.TYPE_COUNT), introLevel);
+            Game1.levelManager.addEnemy(location[0], location[1], Game1.rand.Next(Enemy.TYPE_COUNT), introLevel, forceSand);
+            enemiesSpawnedThisPhase++;
             enemyTimer = 0;
         }
 
@@ -198,7 +243,8 @@ namespace Retroverse
 
         public static void addToProgress(Collectable c)
         {
-            currentPowerup.addToProgress(c);
+            if (currentPowerup != null)
+                currentPowerup.addToProgress(c);
         }
 
         public enum PowerupType
@@ -345,6 +391,7 @@ namespace Retroverse
                             Hero.instance.powerupBoost = 2;
                             currentEnemyDifficulty = 1;
                             exclamate("Rocket Boost", Color.OrangeRed);
+                            Game1.checkpoint = 1;
                         };
                         break;
                     case PowerupType.BoostBurst:
@@ -417,6 +464,7 @@ namespace Retroverse
                             Hero.instance.powerupBoost = 1;
                             currentEnemyDifficulty = 1;
                             exclamate("Rocket Burst", Color.DarkTurquoise);
+                            Game1.checkpoint = 1;
                         };
                         break;
                     case PowerupType.GunInitial:
@@ -426,8 +474,8 @@ namespace Retroverse
                         collectedAction = delegate()
                         {
                             Powerup gunStraight = new Powerup(28, 15, TextureManager.Get("forwardshoticon1"), new Color(255, 50, 50), PowerupType.GunStraight);
-                            Powerup gunSide = new Powerup(28, 14, TextureManager.Get("sideshoticon1"), new Color(100, 255, 100), PowerupType.GunSide);
-                            Powerup gunCharge = new Powerup(28, 16, TextureManager.Get("chargeshoticon1"), new Color(255, 180, 80), PowerupType.GunCharge);
+                            Powerup gunSide = new Powerup(28, 14, TextureManager.Get("sideshoticon2"), new Color(100, 255, 100), PowerupType.GunSide);
+                            Powerup gunCharge = new Powerup(28, 16, TextureManager.Get("chargeshoticon2"), new Color(255, 180, 80), PowerupType.GunCharge);
                             powerupsToAdd.Add(gunStraight);
                             powerupsToAdd.Add(gunSide);
                             powerupsToAdd.Add(gunCharge);
@@ -478,13 +526,14 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(15, 1, TextureManager.Get("retroicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
+                            currentPowerup = new Powerup(15, 1, TextureManager.Get("sandicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
                             currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
                             currentPowerup.progressBySand = true;
                             powerupsToAdd.Add(currentPowerup);
                             Hero.instance.powerupGun = 1;
                             currentEnemyDifficulty = 2;
                             exclamate("Forward Shot", Color.Red);
+                            Game1.checkpoint = 2;
                         };
                         break;
                     case PowerupType.GunSide:
@@ -576,13 +625,14 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(15, 1, TextureManager.Get("retroicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
+                            currentPowerup = new Powerup(15, 1, TextureManager.Get("sandicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
                             currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
                             currentPowerup.progressBySand = true;
                             powerupsToAdd.Add(currentPowerup);
                             Hero.instance.powerupGun = 2;
                             currentEnemyDifficulty = 2;
                             exclamate("Side Shot", Color.Lime);
+                            Game1.checkpoint = 2;
                         };
                         break;
                     case PowerupType.GunCharge:
@@ -704,13 +754,14 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(15, 1, TextureManager.Get("retroicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
+                            currentPowerup = new Powerup(15, 1, TextureManager.Get("sandicon"), DEFAULT_YELLOW, PowerupType.RetroInitial, true);
                             currentPowerup.progressNeededToAppear = SAND_FOR_RETRO;
                             currentPowerup.progressBySand = true;
                             powerupsToAdd.Add(currentPowerup);
                             Hero.instance.powerupGun = 3;
                             currentEnemyDifficulty = 2;
                             exclamate("Charge Beam", Color.Gold);
+                            Game1.checkpoint = 2;
                         };
                         break;
                     case PowerupType.RetroInitial:
@@ -786,13 +837,14 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
+                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drilliconredo1"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
                             currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_DRILL;
                             powerupsToAdd.Add(currentPowerup);
                             Hero.instance.powerupRetro = 1;
                             Game1.levelManager.setCenterEntity(Hero.instance);
                             currentEnemyDifficulty = 3;
                             exclamate("RetroPort", Color.DimGray);
+                            Game1.checkpoint = 3;
                         };
                         break;
                     case PowerupType.RetroStasis:
@@ -851,13 +903,14 @@ namespace Retroverse
                             foreach (Powerup p in powerups)
                                 if (p != this)
                                     powerupsToRemove.Add(p);
-                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drillicon"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
+                            currentPowerup = new Powerup(1, 15, TextureManager.Get("drilliconredo1"), DEFAULT_YELLOW, PowerupType.DrillInitial, true);
                             currentPowerup.progressNeededToAppear = COLLECTABLES_FOR_DRILL;
                             powerupsToAdd.Add(currentPowerup);
                             Hero.instance.powerupRetro = 2;
                             Game1.levelManager.setCenterEntity(Hero.instance);
                             currentEnemyDifficulty = 3;
                             exclamate("RetroStasis", Color.LightGray);
+                            Game1.checkpoint = 3;
                         };
                         break;
                     case PowerupType.DrillInitial:                        
@@ -867,8 +920,8 @@ namespace Retroverse
                         collectedAction = delegate()
                         {
                             History.clearFrames();
-                            Powerup singleDrill = new Powerup(2, 15, TextureManager.Get("drillicon1"), new Color(100, 100, 255), PowerupType.DrillSingle);
-                            Powerup tripleDrill = new Powerup(2, 15, TextureManager.Get("drillicon2"), new Color(100, 255, 100), PowerupType.DrillTriple);
+                            Powerup singleDrill = new Powerup(2, 15, TextureManager.Get("drilliconredo1"), new Color(100, 100, 255), PowerupType.DrillSingle);
+                            Powerup tripleDrill = new Powerup(2, 15, TextureManager.Get("drilliconredo2"), new Color(100, 255, 100), PowerupType.DrillTriple);
                             powerupsToAdd.Add(singleDrill);
                             powerupsToAdd.Add(tripleDrill);
                         };
@@ -977,6 +1030,7 @@ namespace Retroverse
                             Hero.instance.powerupDrill = 1;
                             currentEnemyDifficulty = 4;
                             exclamate("Fast Drill", Color.IndianRed);
+                            Game1.checkpoint = 4;
                         };
                         break;
                     case PowerupType.DrillTriple:
@@ -1115,6 +1169,7 @@ namespace Retroverse
                             Hero.instance.powerupDrill = 2;
                             currentEnemyDifficulty = 4;
                             exclamate("Triple Drill", Color.ForestGreen);
+                            Game1.checkpoint = 4;
                         };
                         break;
                     case PowerupType.Radar:
@@ -1124,6 +1179,7 @@ namespace Retroverse
                             Hero.instance.powerupRadar = 1;
                             Game1.levelManager.targetZoom = LevelManager.ZOOM_ESCAPE;
                             exclamate("Radar", Color.DarkOrchid);
+                            Game1.checkpoint = 5;
                         };
                         break;
                 }

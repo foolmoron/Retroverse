@@ -197,12 +197,19 @@ namespace Retroverse
                 Hero.instance.powerupRetro = (Hero.instance.powerupRetro + 1) % 3;
             else if (pressed(Keys.P))
                 Hero.instance.powerupRadar = (Hero.instance.powerupRadar + 1) % 2;
+            else if (pressed(Keys.OemOpenBrackets))
+                Game1.addSand();
+            else if (pressed(Keys.OemCloseBrackets))
+                Game1.addScore(1);
             else
 #endif
-                if (pressed(Keys.L))
+            if (pressed(Keys.L))
                     Game1.toggleScreenSize();
             if (pressed(Keys.F12))
-                Game1.gameOver();
+            {
+                Game1.Reset(0);
+                Game1.state = GameState.StartScreen;
+            }
 
             if (keyboardUsed)
                 currentInputType = InputType.Keyboard;

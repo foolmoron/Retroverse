@@ -13,9 +13,8 @@ namespace Retroverse
 {
     public class Level
     {
-        public const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        public static int alphabetOffset1, alphabetOffset2;
-        public static readonly double CHANCE_TO_SPAWN_SAND_ON_DRILL = 0.10;
+        public static readonly int LEVEL_CLEAR_BONUS_SCORE = 10000;
+        public static readonly double CHANCE_TO_SPAWN_SAND_ON_DRILL = 0.05;
         public static readonly int DRILL_WALL_SCORE = 150;
         public static readonly int TILE_SIZE = 32;
         public static readonly int TEX_SIZE = LevelContent.LEVEL_SIZE * TILE_SIZE;
@@ -34,6 +33,9 @@ namespace Retroverse
         public static readonly int MAX_COST = 1000;
         public int[,] grid_cost = new int[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
         public bool alive = false;
+
+        public const string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        public static int alphabetOffset1, alphabetOffset2;
 
         private static int idCounter = 0;
         public int id;
@@ -193,8 +195,20 @@ namespace Retroverse
             return levelTextureDebug;
         }
 
+        public void removePrisoner(Prisoner p)
+        {
+            prisoners.Remove(p);
+            if (prisoners.Count == 0) // level clear bonus
+            {
+                Game1.showExclamation(new string[] { "***", "LEVEL CLEAR BONUS", "***" }, new Color[] { Color.Yellow, Color.White, Color.Yellow }, 2f);
+                Game1.addScore(LEVEL_CLEAR_BONUS_SCORE);
+            }
+        }
+
         public bool drillWall(int tileX, int tileY)
         {
+            if (!LevelManager.introFinished)
+                return true;
             try
             {
                 if (grid[tileX, tileY] != LevelContent.LevelTile.Black)
@@ -245,49 +259,7 @@ namespace Retroverse
         }
         public void UpdateCost()
         {
-            /*
-            Vector2[,] temp=new Vector2[LevelContent.LEVEL_SIZE,LevelContent.LEVEL_SIZE];
-            Console.WriteLine("update has started");
-            for (int a = 0; a < LevelContent.LEVEL_SIZE; a++)
-                for (int b = 0; b < LevelContent.LEVEL_SIZE; b++)
-                {
-                    temp = aStar(a, b);
-                    for (int c = 0; c < LevelContent.LEVEL_SIZE; c++)
-                        for (int d = 0; d < LevelContent.LEVEL_SIZE; d++)
-                            cost[a, b, c, d] = temp[c, d];
-                }*/
-            /*
-            Dictionary<Point, Dictionary<Point, double>> dist = new Dictionary<Point, Dictionary<Point, double>>();
-            Dictionary<Point, Dictionary<Point,Point>> path = new Dictionary<Point, Dictionary<Point,Point>>();
-            //Point[,] temp = new Point[LevelContent.LEVEL_SIZE * LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE * LevelContent.LEVEL_SIZE];
-            for (int a = 0; a < LevelContent.LEVEL_SIZE; a++)
-            {
-                for (int b = 0; b < LevelContent.LEVEL_SIZE; b++){
-                    dist.Add(new Point(a, b), new Dictionary<Point, double>());
-                    for(int c=0;c<LevelContent.LEVEL_SIZE;c++)
-                        for(int d=0;d<LevelContent.LEVEL_SIZE;d++)
-                            dist[new Point(a,b)].Add(new Point(c,d),1000);
-                }
-            }
-            */
             cost = new Vector2[LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE, LevelContent.LEVEL_SIZE];
-            /*
-            for (int a = 0; a < LevelContent.LEVEL_SIZE * LevelContent.LEVEL_SIZE; a++)
-                for (int b = 0; b < LevelContent.LEVEL_SIZE * LevelContent.LEVEL_SIZE; b++)
-                {
-                    for (int c = 0; c < LevelContent.LEVEL_SIZE * LevelContent.LEVEL_SIZE; c++)
-                            cost[a, b, c, d] = aStar(a, b, c, d);
-                }*/
-            /*
-            foreach (Point a in dist.Keys)
-                foreach (Point b in dist.Keys)
-                    foreach (Point c in dist.Keys)
-                        if (dist[b][a] + dist[a][c] < dist[b][c])
-                        {
-                            dist[b][c] = dist[b][a] + dist[a][c];
-                            path[b][c] = a;
-                        }
-             */
         }
         public double dist(Point first, Point second)
         {

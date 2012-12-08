@@ -3,6 +3,11 @@ texture2D Texture;
 sampler2D TextureSampler = sampler_state
 {
     Texture = <Texture>;
+	MinFilter = Anisotropic; // Minification Filter
+	MagFilter = Anisotropic; // Magnification Filter
+    MipFilter = Linear; // Mip-mapping
+    AddressU = Wrap; // Address Mode for U Coordinates
+    AddressV = Wrap; // Address Mode for V Coordinates
 };
 
 struct PixelShaderInput
@@ -12,7 +17,7 @@ struct PixelShaderInput
 
 float4 PixelShaderFunction(PixelShaderInput input) : COLOR0
 {
-	return tex2D(TextureSampler, input.TexCoord)/2;
+	return tex2D(TextureSampler, input.TexCoord);
 }
 
 technique Technique1

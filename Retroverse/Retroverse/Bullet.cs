@@ -77,7 +77,7 @@ namespace Retroverse
             explosionEmitter.endColor = emitterColor;
             explosionEmitter.active = false;
         }
-        public Bullet(string textureName, Hitbox hitbox, int damage, Vector2 position, Vector2 velocity, float rotation, float scale, bool phasing, int texFrame, History.EmitterHistory trail, History.EmitterHistory explosion, bool dying)
+        public Bullet(string textureName, Hitbox hitbox, int damage, Vector2 position, Vector2 velocity, float distance, float distanceLimit, float rotation, float scale, bool phasing, int texFrame, History.EmitterHistory trail, History.EmitterHistory explosion, bool dying)
         {
             this.textureName = textureName;
             setTexture(textureName);
@@ -85,6 +85,8 @@ namespace Retroverse
             this.damage = damage;
             this.position = position;
             this.velocity = velocity;
+            this.distance = distance;
+            this.distanceLimit = distanceLimit;
             this.rotation = rotation;
             this.scale = scale;
             this.phasing = phasing;

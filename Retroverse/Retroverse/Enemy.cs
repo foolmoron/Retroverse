@@ -11,7 +11,7 @@ namespace Retroverse
 {
     public class Enemy : Entity
     {
-        public static readonly double CHANCE_TO_SPAWN_SAND_ON_DEATH = 0.20;
+        public static readonly double CHANCE_TO_SPAWN_SAND_ON_DEATH = 0.05;
         public static readonly int ENEMY_KILL_SCORE = 150;
         public static readonly int WALL_COST = 100000;
         public static readonly int MAX_COST = 1000;
@@ -34,6 +34,7 @@ namespace Retroverse
             {new Vector2(1, 0),Direction.Right},
         };
         private Level lvl;
+        private bool forceSandToSpawn;
         public static readonly int STARTING_HP = 5;
         public int hp;
         public int type;
@@ -44,10 +45,11 @@ namespace Retroverse
         public static int idx = 0;
         public int id;
 
-        public Enemy(int x, int y, int type, Level lv)
+        public Enemy(int x, int y, int type, Level lv, bool forceSandToSpawn = false)
             : base(new Hitbox(32, 32))
         {
             lvl = lv;
+            this.forceSandToSpawn = forceSandToSpawn;
             this.type = type;
             aimOffset = aimPoints[type];
             roundPosition = new Point(x, y);
@@ -284,7 +286,7 @@ namespace Retroverse
             Game1.addScore(ENEMY_KILL_SCORE);
             dying = true; 
             double chance = Game1.rand.NextDouble();
-            if (chance < CHANCE_TO_SPAWN_SAND_ON_DEATH)
+            if (chance < CHANCE_TO_SPAWN_SAND_ON_DEATH || forceSandToSpawn)
             {
                 int i = roundPosition.X;
                 int j = roundPosition.Y;

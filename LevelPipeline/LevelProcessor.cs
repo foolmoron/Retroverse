@@ -21,7 +21,7 @@ namespace LevelPipeline
     /// TODO: change the ContentProcessor attribute to specify the correct
     /// display name for this processor.
     /// </summary>
-    [ContentProcessor(DisplayName = "LevelPipeline.LevelProcessor")]
+    [ContentProcessor(DisplayName = "Level Processor")]
     public class LevelProcessor : ContentProcessor<Texture2DContent, LevelContent>
     {
         public static readonly int CELL_SIZE = 16;

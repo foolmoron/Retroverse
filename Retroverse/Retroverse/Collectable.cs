@@ -29,7 +29,7 @@ namespace Retroverse
             : base(new Hitbox(32, 32))
         {
             position = new Vector2(x, y);
-            this.setTexture("collectable1");
+            this.setTexture("collectable3");
             this.levelX = levelX;
             this.levelY = levelY;
             this.tileX = tileX;
