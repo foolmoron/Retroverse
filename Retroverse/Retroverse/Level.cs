@@ -130,6 +130,8 @@ namespace Retroverse
 
         public static string GetCellName(int xPos, int yPos, int cellOffset1 = -1, int cellOffset2 = -1)
         {
+            if (RetroGame.TopLevelManagerScreen is StoreScreen)
+                return "???";
             if (cellOffset1 < 0)
                 cellOffset1 = alphabetOffset1;
             if (cellOffset2 < 0)
@@ -610,6 +612,8 @@ namespace Retroverse
                 p.Update(gameTime);
             foreach (Collectable c in collectables)
                 c.Update(gameTime);
+            foreach (PowerupIcon p in powerups)
+                p.Update(gameTime);
 
         }
 

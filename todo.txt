@@ -1,0 +1,30 @@
+X Fix those random co-op bugs
+X Fix other bugs (fire chains graphics, passive powerups on a dead partner in co-op, etc.)
+X Allow players to choose # and color and name at start of game
+X Left/Right menu options
+X Settings menu:
+X	Key/button binding menu
+X	Sound options menu
+X	Screen size (already done)
+X Highscore thing (Most Wanted)
+X Update/save highscore in real time
+X Add all that planned extra info to the pause menu
+X Menu for loading different games
+X Sounds in reverse
+X Optimize some major bottlenecks (especially transitioning between levels)
+X Fix those pitch-black/too-many-monsters levels
+X Flamethrower particles
+X Inventory error messages
+X Polish TimedSpeedBoost
+X Playback icons on HUD
+X Cell name on HUD
+X Save config between plays
+X Fix level overlay texture memory leak
+X Fix level overlay tile 1 pixel error
+X Credits
+X Continue menu name/number scaling
+X Sand/Prisoner collect sound
+X PowerupIcons don't update in RetroPort mode
+- Triple drill across levels (maybe)
+- Sound panning (maybe)
+- Scrolling list of prisoners saved (maybe)

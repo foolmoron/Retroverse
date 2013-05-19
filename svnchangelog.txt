@@ -1,3 +1,6 @@
+326
+-Removed old levels
+-Fixed cell name in store
 325
 Disabled levels debug string in release mode
 324

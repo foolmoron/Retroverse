@@ -29,8 +29,8 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>9</ApplicationRevision>
-    <ApplicationVersion>0.8.0.%2a</ApplicationVersion>
+    <ApplicationRevision>3</ApplicationRevision>
+    <ApplicationVersion>0.2.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -148,7 +148,7 @@
     <Compile Include="Screens\StaticTransitionScreen.cs" />
     <Compile Include="Sound\SoundInfo.cs" />
     <Compile Include="XmlColor.cs" />
-    <Content Include="History\ReversibleTEMPLATE.txt" />
+    <None Include="History\ReversibleTEMPLATE.txt" />
     <Compile Include="History\History.cs" />
     <Compile Include="History\IMemento.cs" />
     <Compile Include="History\IReversible.cs" />
@@ -240,7 +240,7 @@
   <ItemGroup>
     <Content Include="Game.ico" />
     <Content Include="GameThumbnail.png" />
-    <Content Include="Powerups\PowerupTEMPLATE.txt" />
+    <None Include="Powerups\PowerupTEMPLATE.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LevelContent\LevelContent.csproj">

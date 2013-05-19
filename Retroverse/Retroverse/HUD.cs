@@ -285,7 +285,7 @@ namespace Retroverse
             {
                 xPos = hudWidth * (1 - CELL_OFFSETX) + HUD_INITIAL_POSITION;
                 yPos = hudHeight * CELL_YPOS;
-                cellName = Level.GetCellName(RetroGame.getHeroes()[0].levelX, RetroGame.getHeroes()[1].levelY);
+                cellName = Level.GetCellName(RetroGame.getHeroes()[1].levelX, RetroGame.getHeroes()[1].levelY);
                 nameDims = RetroGame.FONT_PIXEL_SMALL.MeasureString(cellName);
                 nameRatio = nameDims.Y / nameDims.X;
 
