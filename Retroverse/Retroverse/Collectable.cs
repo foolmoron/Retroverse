@@ -8,16 +8,17 @@ using Particles;
 
 namespace Retroverse
 {
-    public class Collectable : Entity
+    public abstract class Collectable : Entity
     {
-        public static readonly float MOVE_SPEED = 760f;
-        public int levelX, levelY, tileX, tileY;
+        public string CollectedSound { get; protected set; }
+        protected enum CollectedAction { Delete, Regenerate }
+        protected CollectedAction ActionAfterCollected { get; set; }
         public double collectedTime;
         public float timeAlive = 0;
         public bool ableToBeCollected = true;
         public bool addsToProgress = true;
         public bool dying = false;
-        public bool collectedThisFrame = false;
+        public Entity collectedByEntity = null;
         public Emitter emitter;
         public static readonly float COLLECTABLE_SCORE_MAXIMUM_RAMP_UP_TIME = 10f; //secs
         public static readonly float COLLECTABLE_SCORE_RANDOM_BONUS_PERCENTAGE = 0.1f;
@@ -26,9 +27,10 @@ namespace Retroverse
         public float rampUpScoreBonus = 0;
         
         public Collectable(int x,int y, int levelX, int levelY, int tileX, int tileY)
-            : base(new Hitbox(32, 32))
+            : base(new Vector2(x, y), new Hitbox(32, 32))
         {
-            position = new Vector2(x, y);
+            CollectedSound = "CollectGem";
+            ActionAfterCollected = CollectedAction.Delete;
             this.setTexture("collectable3");
             this.levelX = levelX;
             this.levelY = levelY;
@@ -41,37 +43,51 @@ namespace Retroverse
 
         public override void Update(GameTime gameTime)
         {
-            collectedThisFrame = false;
             timeAlive += gameTime.getSeconds();
             float rampUpFactor = (timeAlive / COLLECTABLE_SCORE_MAXIMUM_RAMP_UP_TIME);
             if (rampUpFactor > 1f)
                 rampUpFactor = 1;
-            rampUpScoreBonus = rampUpFactor * (baseScore / 4);
+            rampUpScoreBonus = rampUpFactor * (baseScore / 4f);
             if (dying)
             {
                 emitter.position = position;
                 emitter.Update(gameTime);
                 if (emitter.isFinished())
                 {
-                    Game1.levelManager.collectablesToRemove.Add(this);
+                    if (ActionAfterCollected == CollectedAction.Delete)
+                        RetroGame.EscapeScreen.levelManager.collectablesToRemove.Add(this);
+                    else if (ActionAfterCollected == CollectedAction.Regenerate)
+                    {
+                        dying = false;
+                        timeAlive = 0;
+                        ableToBeCollected = true;
+                        collectedByEntity = null;
+                        emitter.Reset();
+                        emitter.active = true;
+                        rampUpScoreBonus = 0;
+                    }
                 }
             }
-            else
-            {
-                if (Hero.instance.hitbox.intersects(hitbox) && ableToBeCollected)
-                {
-                    collectedTime = gameTime.TotalGameTime.TotalMilliseconds;
-                    float randomScoreBonus = ((float)Game1.rand.NextDouble() - 0.5f) * (baseScore * COLLECTABLE_SCORE_RANDOM_BONUS_PERCENTAGE);
-                    if (baseScore > 0)
-                        Game1.addScore((int)(baseScore + rampUpScoreBonus + randomScoreBonus));
-                    dying = true;
-                    collectedThisFrame = true;
-                    if (addsToProgress && Game1.state == GameState.Arena)
-                        Powerups.addToProgress(this);
-                }
-            }
-            hitbox.Update(this);
+            updateCurrentLevelAndTile();
             base.Update(gameTime);
+        }
+
+        public virtual bool collectedBy(Entity e)
+        {
+            if (!dying && ableToBeCollected)
+            {
+                collectedTime = latestGameTime.TotalGameTime.TotalMilliseconds;
+                float randomScoreBonus = ((float)RetroGame.rand.NextDouble() - 0.5f) * (baseScore * COLLECTABLE_SCORE_RANDOM_BONUS_PERCENTAGE);
+                if (baseScore > 0)
+                    RetroGame.AddScore((int)(baseScore + rampUpScoreBonus + randomScoreBonus));
+                dying = true;
+                ableToBeCollected = false;
+                collectedByEntity = e;
+                if (!string.IsNullOrEmpty(CollectedSound))
+                    SoundManager.PlaySoundOnce(CollectedSound);
+                return true;
+            }
+            return false;
         }
 
         public override void Draw(SpriteBatch spriteBatch)

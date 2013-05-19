@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Serialization;
+
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
@@ -11,16 +13,22 @@ using Microsoft.Xna.Framework.Media;
 
 namespace Retroverse
 {
-    public class Entity
+    public class Entity : Controllable
     {
         public Vector2 position;
+        public int prevLevelX, prevLevelY, prevTileX, prevTileY;
+        public int levelX, levelY;
+        public bool levelChanged;
+        public int tileX, tileY;
+        public bool tileChanged;
         public Vector2 velocity;
         public Vector2 acceleration;
         public bool active;
 
+        public GameTime latestGameTime = new GameTime();
         public Hitbox hitbox;
         protected AnimatedTexture texture;
-        protected Color maskingColor = Color.White;
+        public Color maskingColor = Color.White;
         public float scale = 1;
         public float alpha = 1;
         public float rotation = 0;
@@ -28,18 +36,20 @@ namespace Retroverse
         public float layer = 0.5f;
         public static readonly Vector2 INITIAL_POSITION = new Vector2(300, 0);
 
-        public Entity()
+        public Entity(Vector2 position)
         {
             active = true;
-            position = INITIAL_POSITION;
+            this.position = position;
             hitbox = new Hitbox(new Vector2(0, 0), 0, 0);
+            hitbox.Update(this);
         }
 
-        public Entity(Hitbox hitbox)
+        public Entity(Vector2 position, Hitbox hitbox)
         {
             active = true;
-            position = INITIAL_POSITION;
+            this.position = position;
             this.hitbox = hitbox;
+            hitbox.Update(this);
         }
 
         public void setPosition(Vector2 v)
@@ -101,7 +111,7 @@ namespace Retroverse
 
         public float getTransformedScale()
         {
-            return getBottom().Y / Game1.screenSize.Y;
+            return getBottom().Y / RetroGame.screenSize.Y;
         }
 
         public void setTextureFrame(int frame)
@@ -132,14 +142,32 @@ namespace Retroverse
                 texture.onStart();
         }
 
+        public void updateCurrentLevelAndTile()
+        {
+            int x = (int)position.X;
+            int y = (int)position.Y;
+
+            prevLevelX = levelX;
+            prevLevelY = levelY;
+            levelX = x / Level.TEX_SIZE; // get which level you are in
+            levelY = y / Level.TEX_SIZE;
+            levelChanged = prevLevelX != levelX || prevLevelY != levelY;
+
+            prevTileX = tileX;
+            prevTileY = tileY;
+            tileX = (x % Level.TEX_SIZE) / Level.TILE_SIZE; // get which tile you are moving to
+            tileY = (y % Level.TEX_SIZE) / Level.TILE_SIZE;
+            tileChanged = prevTileX != tileX || prevTileY != tileY;
+        }
+
         public void offsetPosition(Vector2 off)
         {
             position += off;
         }
 
-        public bool canMove(Vector2 movement)
+        public virtual bool canMove(Vector2 movement)
         {
-            return Game1.levelManager.attemptScroll(this, movement);
+            return RetroGame.EscapeScreen.levelManager.attemptScroll(this, movement);
         }
 
         public virtual SpriteEffects getFlip()
@@ -149,11 +177,17 @@ namespace Retroverse
 
         public virtual void Update(GameTime gameTime)
         {
+            latestGameTime = gameTime;
             if (!active)
                 return;
             if (texture != null)
                 texture.Update(gameTime, this);
             hitbox.Update(this);
+        }
+
+        public override void OnInputAction(InputAction action, bool pressedThisFrame)
+        {
+            throw new InvalidOperationException("You must override the OnInputAction method in your Entity subclass if you want to use UpdateControls()");
         }
 
         public virtual void Draw(SpriteBatch spriteBatch)

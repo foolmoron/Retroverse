@@ -32,5 +32,15 @@ namespace Particles
         CollectedSparks,
         PrisonerSparks,
         ChargingSparks,
+        BlinkOriginSparks,
+        BlinkEndSparks,
+        FlameFire,
+    }
+
+    public enum PrebuiltLineEmitter
+    {
+        FlamethrowerFire,
+        RiotGuardWallDrillSparks,
+        FireChainsFire,
     }
 }

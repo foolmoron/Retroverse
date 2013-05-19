@@ -29,7 +29,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>7</ApplicationRevision>
+    <ApplicationRevision>9</ApplicationRevision>
     <ApplicationVersion>0.8.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -123,38 +123,124 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AI\AI.cs" />
+    <Compile Include="AI\AStarPathfinding.cs" />
+    <Compile Include="AI\DoNothingAI.cs" />
+    <Compile Include="AI\TurnInPlaceAI.cs" />
+    <Compile Include="AI\HeroChaseAI.cs" />
+    <Compile Include="AI\PatrolAI.cs" />
+    <Compile Include="AI\TargetedAI.cs" />
     <Compile Include="AnimatedTexture.cs" />
-    <Compile Include="Bullet.cs" />
+    <Compile Include="HeroInfo.cs" />
+    <Compile Include="Highscores.cs" />
+    <Compile Include="PowerupIconRegenerating.cs" />
+    <Compile Include="Gem.cs" />
+    <Compile Include="Particles\LineEmitter.cs" />
+    <Compile Include="PlayerPrisoner.cs" />
+    <Compile Include="Powerups\Bomb.cs" />
+    <Compile Include="Camera\Camera.cs" />
+    <Compile Include="Camera\ArenaCamera.cs" />
+    <Compile Include="Camera\EscapeCamera.cs" />
+    <Compile Include="Controller\Bindings.cs" />
+    <Compile Include="Controller\Controllable.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="Powerups\FullHealthPickup.cs" />
+    <Compile Include="Screens\StaticTransitionScreen.cs" />
+    <Compile Include="Sound\SoundInfo.cs" />
+    <Compile Include="XmlColor.cs" />
+    <Content Include="History\ReversibleTEMPLATE.txt" />
+    <Compile Include="History\History.cs" />
+    <Compile Include="History\IMemento.cs" />
+    <Compile Include="History\IReversible.cs" />
+    <Compile Include="HUD.cs" />
+    <Compile Include="Inventory.cs" />
+    <Compile Include="LevelFragment.cs" />
     <Compile Include="Names.cs" />
     <Compile Include="Collectable.cs" />
-    <Compile Include="Controller.cs" />
     <Compile Include="Enemy.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Graphical Effects\Effects.cs" />
     <Compile Include="Graphical Effects\Vignette.cs" />
-    <Compile Include="History.cs" />
     <Compile Include="Entity.cs" />
     <Compile Include="EntityPool.cs" />
     <Compile Include="Hero.cs" />
     <Compile Include="Hitbox.cs" />
     <Compile Include="Level.cs" />
     <Compile Include="LevelManager.cs" />
-    <Compile Include="Particles\ParticleEmitter.cs" />
+    <Compile Include="Particles\Emitter.cs" />
     <Compile Include="Particles\Particle.cs" />
     <Compile Include="Particles\Particles.cs" />
+    <Compile Include="AI\Pathfinding.cs" />
+    <Compile Include="Player.cs" />
+    <Compile Include="PowerupIcon.cs" />
+    <Compile Include="Powerups\Adrenaline.cs" />
+    <Compile Include="Powerups\AdrenalinePickup.cs" />
+    <Compile Include="Powerups\BlinkPowerup.cs" />
+    <Compile Include="Powerups\BombTimed.cs" />
+    <Compile Include="Powerups\BombSet.cs" />
+    <Compile Include="Powerups\BoostPowerup.cs" />
+    <Compile Include="Powerups\BombPowerup.cs" />
+    <Compile Include="Powerups\Bullet.cs" />
+    <Compile Include="Powerups\CoOpPowerup.cs" />
+    <Compile Include="Powerups\DrillBasic.cs" />
+    <Compile Include="Powerups\RevivePickup.cs" />
+    <Compile Include="Powerups\SandPickup.cs" />
+    <Compile Include="Powerups\BombPickup.cs" />
+    <Compile Include="Powerups\HealthPickup.cs" />
     <Compile Include="Powerups.cs" />
+    <Compile Include="Powerups\ShotBasic.cs" />
+    <Compile Include="Powerups\ShieldSlow.cs" />
+    <Compile Include="Powerups\ShieldDamage.cs" />
+    <Compile Include="Powerups\DrillFast.cs" />
+    <Compile Include="Powerups\DrillPowerup.cs" />
+    <Compile Include="Powerups\DrillTriple.cs" />
+    <Compile Include="Powerups\FireChains.cs" />
+    <Compile Include="Powerups\Flame.cs" />
+    <Compile Include="Powerups\Flamethrower.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Powerups\RadarPowerup.cs" />
+    <Compile Include="Powerups\RescuePowerup.cs" />
+    <Compile Include="Powerups\RetroPort.cs" />
+    <Compile Include="Powerups\ShieldPowerup.cs" />
+    <Compile Include="Powerups\ShotForward.cs" />
+    <Compile Include="Powerups\GunPowerup.cs" />
+    <Compile Include="Powerups\Powerup.cs" />
+    <Compile Include="Powerups\RocketBoost.cs" />
+    <Compile Include="Powerups\RocketBurst.cs" />
+    <Compile Include="Powerups\ShotCharge.cs" />
+    <Compile Include="Powerups\ShotSide.cs" />
+    <Compile Include="Powerups\TimedSpeedBoost.cs" />
     <Compile Include="Prisoner.cs" />
+    <Compile Include="ProjectBuildDate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Game1.cs" />
-    <Compile Include="RetroStasis.cs" />
+    <Compile Include="RetroGame.cs" />
+    <Compile Include="Powerups\RetroStasis.cs" />
     <Compile Include="RiotGuardWall.cs" />
     <Compile Include="Sand.cs" />
+    <Compile Include="Saves.cs" />
+    <Compile Include="Screens\LevelManagerScreen.cs" />
+    <Compile Include="Screens\StoreScreen.cs" />
+    <Compile Include="Screens\MenuScreen.cs" />
+    <Compile Include="Screens\InventoryScreen.cs" />
+    <Compile Include="Screens\MenuOptions.cs" />
+    <Compile Include="Screens\RetroPortScreen.cs" />
+    <Compile Include="Screens\EscapeScreen.cs" />
+    <Compile Include="Screens\GameOverScreen.cs" />
+    <Compile Include="Screens\PauseScreen.cs" />
+    <Compile Include="Screens\StartScreen.cs" />
+    <Compile Include="Screens\Screen.cs" />
+    <Compile Include="Sound\SoundManager.cs" />
+    <Compile Include="Sound\SoundReversible.cs" />
+    <Compile Include="Sound\SoundReversibleInstance.cs" />
+    <Compile Include="StoreLevel.cs" />
     <Compile Include="TextureManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Game.ico" />
     <Content Include="GameThumbnail.png" />
+    <Content Include="Powerups\PowerupTEMPLATE.txt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LevelContent\LevelContent.csproj">

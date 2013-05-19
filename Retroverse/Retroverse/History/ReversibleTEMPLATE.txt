@@ -1,0 +1,36 @@
+﻿/* Place this at the end of the list of methods of a class that you want to be reversible
+ * Make sure that the class subclasses the IReversible interface, and that it calls History.RegisterReversible at some point (Powerups call this automatically when added to hero) */
+        public IMemento GenerateMementoFromCurrentFrame()
+        {
+            return new ClassnameMemento(this); //generate new memento using current state of this object
+        }
+
+		//this class does not need to be accessible anywhere else, it does all its work here
+        protected class ClassnameMemento : IMemento
+        {
+			//add necessary fields to save information here
+            public Object Target { get; set; }
+
+            public ClassnameMemento(Class target)
+            {
+				//save necessary information from target here
+				Target = target;
+            }
+			
+            public void Apply(float interpolationFactor, bool isNewFrame, IMemento nextFrame)
+            { 			
+                Class target = (Class)Target;
+                if (nextFrame != null) //apply values with interpolation only if the next frame exists
+                {
+					float thisInterp = 1 - interpolationFactor;
+					float nextInterp = interpolationFactor;	
+					//cast the given memento to this specific type, don't worry about class cast exceptions
+                    ClassnameMemento next = (ClassnameMemento)nextFrame;
+                }
+                else
+                {
+					//do non-interpolative versions of the above applications here
+                }
+				//apply values that never need interpolation here
+            }
+        }

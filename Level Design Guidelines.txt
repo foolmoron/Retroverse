@@ -1,0 +1,12 @@
+Each full level should have around (doesn't have to be exact):
+	24 trivial gems  - These gems should be obvious/easy to get while just passing through the level.  CAN BE IN GROUPS
+	12 extra gems - These gems will require extra actions, maybe certain powerups, to obtain. CAN BE IN GROUPS
+	4 prisoners - Like extra gems, these should require some extra effort to obtain.  SEPARATED AROUND LEVEL, NEVER IN GROUPS.
+	OR
+	1 powerup - The level should be a complex design dedicated to hiding a single powerup.  It should be about as difficult to get this powerup as it is to get all gems and all prisoners in a typical level.
+The amounts are halved/quartered for half/quarter levels respectively.  You CAN make powerup levels that are halves or quarters...
+
+Some tips:
+- Make quarter or half levels more than full levels
+- Some (not all) levels can be simple or "mundane"
+- Try to choose varied colors for levels, but it's not that big of a deal if some have similar colors

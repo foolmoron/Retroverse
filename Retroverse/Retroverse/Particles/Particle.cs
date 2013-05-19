@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
-using Retroverse;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace Particles
 {
     public class Particle
     {
+        public double creationTimeAbsoluteSecs;
         public Texture2D texture;
         public Vector2 position;
         public Vector2 originalPos;
@@ -28,9 +25,10 @@ namespace Particles
         public Color endColor;
         public float lifecycle = 0;
 
-        public Particle(Texture2D texture, Vector2 position, Vector2 posShift, Vector2 vUnit, Vector2 velocity, ParticleDeathMode deathMode,
+        public Particle(double creationTimeAbsoluteSecs, Texture2D texture, Vector2 position, Vector2 posShift, Vector2 vUnit, Vector2 velocity, ParticleDeathMode deathMode,
             float valueToDeath, float startSize, float endSize, Color startColor, Color endColor)
         {
+            this.creationTimeAbsoluteSecs = creationTimeAbsoluteSecs;
             this.texture = texture;
             this.originalPos = position;
             this.posShift = posShift;
@@ -45,23 +43,12 @@ namespace Particles
             color = startColor;
         }
 
-        public void Update(GameTime gameTime, Emitter e, float timeModifier, bool reverse)
+        public void Update(double currentTimeAbsoluteSecs, Emitter e)
         {
-            float seconds = gameTime.getSeconds() * timeModifier;
-            if (reverse)
-            {
-                Vector2 movement = seconds * -velocity;
-                posShift += movement;
-                dist -= movement.Length();
-                time -= seconds;
-            }
-            else
-            {
-                Vector2 movement = seconds * velocity;
-                posShift += movement;
-                dist += movement.Length();
-                time += seconds;
-            }
+            time = (float)(currentTimeAbsoluteSecs - creationTimeAbsoluteSecs);
+            posShift = time * velocity;
+            dist = posShift.Length() * ((time < 0) ? -1 : 1);
+
             if (e == null)
                 position = originalPos + posShift;
             else
@@ -76,7 +63,9 @@ namespace Particles
                     break;
             }
             if (lifecycle > 1 || lifecycle < 0)
+            {
                 return;
+            }
             float r, g, b, a;
             a = (startColor.A * (1 - lifecycle) + endColor.A * lifecycle);
             color.A = (byte) a;

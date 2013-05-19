@@ -10,17 +10,6 @@ using Retroverse;
 
 namespace LevelPipeline
 {
-    /// <summary>
-    /// This class will be instantiated by the XNA Framework Content Pipeline
-    /// to apply custom processing to content data, converting an object of
-    /// type TInput to TOutput. The input and output types may be the same if
-    /// the processor wishes to alter data without changing its type.
-    ///
-    /// This should be part of a Content Pipeline Extension Library project.
-    ///
-    /// TODO: change the ContentProcessor attribute to specify the correct
-    /// display name for this processor.
-    /// </summary>
     [ContentProcessor(DisplayName = "Level Processor")]
     public class LevelProcessor : ContentProcessor<Texture2DContent, LevelContent>
     {
@@ -28,24 +17,32 @@ namespace LevelPipeline
 
         public override LevelContent Process(Texture2DContent tex, ContentProcessorContext context)
         {
+            string name = context.OutputFilename.Split('\\').Last().Split('.')[0];
             tex.ConvertBitmapType(typeof(PixelBitmapContent<Color>));
             PixelBitmapContent<Color> grid = (PixelBitmapContent<Color>)tex.Mipmaps[0];
             LevelContent level = new LevelContent();
             int w = grid.Width;
             int h = grid.Height;
-            if (w != LevelContent.LEVEL_SIZE * CELL_SIZE || h != LevelContent.LEVEL_SIZE * CELL_SIZE)
-            {
-                throw new ArgumentException("Texture " + tex.Name + " is " + w + "x" + h + "; should be " + (LevelContent.LEVEL_SIZE * CELL_SIZE) + "x" + (LevelContent.LEVEL_SIZE * CELL_SIZE));
-            }
+            if (w == LevelContent.LEVEL_SIZE * CELL_SIZE && h == LevelContent.LEVEL_SIZE * CELL_SIZE)
+                level.Init(name, LevelContent.Type.Full);
+            else if (w == LevelContent.LEVEL_SIZE_HALF * CELL_SIZE && h == LevelContent.LEVEL_SIZE * CELL_SIZE)
+                level.Init(name, LevelContent.Type.HalfVertical);
+            else if (w == LevelContent.LEVEL_SIZE * CELL_SIZE && h == LevelContent.LEVEL_SIZE_HALF * CELL_SIZE)
+                level.Init(name, LevelContent.Type.HalfHorizontal);
+            else if (w == LevelContent.LEVEL_SIZE_HALF * CELL_SIZE && h == LevelContent.LEVEL_SIZE_HALF * CELL_SIZE)
+                level.Init(name, LevelContent.Type.Corner);
+            else
+                throw new ArgumentException("Texture " + tex.Name + " is " + w + "x" + h + "; should be a combination of " + (LevelContent.LEVEL_SIZE_HALF * CELL_SIZE) + " and " + (LevelContent.LEVEL_SIZE * CELL_SIZE));
+
             //Process cell
-            for (int i = 0; i < LevelContent.LEVEL_SIZE; i++)
-                for (int j = 0; j < LevelContent.LEVEL_SIZE; j++)
+            int levelWidth = level.levelWidth;
+            int levelHeight = level.levelHeight;
+            //System.Diagnostics.Debugger.Launch();
+            for (int i = 0; i < levelWidth; i++)
+                for (int j = 0; j < levelHeight; j++)
                 {
                     //Individual cell
                     Dictionary<Color, int> colorCount = new Dictionary<Color, int>();
-                    int avgR = 0;
-                    int avgG = 0;
-                    int avgB = 0;
                     for (int k = i * CELL_SIZE; k < (i + 1) * CELL_SIZE; k++)
                         for (int l = j * CELL_SIZE; l < (j + 1) * CELL_SIZE; l++)
                         {
@@ -54,6 +51,11 @@ namespace LevelPipeline
                                 colorCount[pixel] = colorCount[pixel] + 1;
                             else
                                 colorCount.Add(pixel, 1);
+
+                           // System.Diagnostics.Debugger.Launch();
+                            // use top-leftmost pixel for level's color unless already specified
+                            if (k == 0 && l == 0)
+                                level.setColor(pixel);
                         }
                     // modeColor = most "popular" color in a given cell
                     Color modeColor = Color.White;
@@ -66,7 +68,7 @@ namespace LevelPipeline
                             modeColor = pair.Key;
                         }
                     }
-                    LevelContent.LevelTile finalTile = LevelContent.LevelTile.White;
+                    LevelContent.LevelTile finalTile = LevelContent.LevelTile.Floor;
                     double minDistance = double.PositiveInfinity;
                     foreach (KeyValuePair<LevelContent.LevelTile, Color> pair in LevelContent.TILE_TO_COLOR)
                     {
@@ -80,7 +82,7 @@ namespace LevelPipeline
                             finalTile = pair.Key;
                         }
                     }
-                    level.grid[i + j * LevelContent.LEVEL_SIZE] = finalTile;
+                    level.grid[i + j * levelWidth] = finalTile;
                 }
             return level;
         }

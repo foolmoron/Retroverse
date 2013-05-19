@@ -22,7 +22,7 @@ float weightR = 0.30;
 float weightG = 0.59;
 float weightB = 0.11;
 
-float negativeFactor = 0.75;
+float negativeFactor = 0.25;
 
 float4 PixelShaderFunction(PixelShaderInput input) : COLOR0
 {

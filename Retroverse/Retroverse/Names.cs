@@ -1,19 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
 
 namespace Retroverse
 {
     public static class Names
     {
-        public static readonly List<char> VOWELS = new List<char>(new char[] { 'a', 'e', 'i', 'o', 'u', 'y' });
+        public static readonly char[] VOWELS = new char[]{ 'a', 'e', 'i', 'o', 'u', 'y' };
         private static Random rand = new Random();
         public static List<string> prefixes = new List<string>();
         public static List<string> suffixes = new List<string>();
+        public const int CHAR_LIMIT = 9;
 
-        public static void Initialize()
+        static Names()
         {
             if (File.Exists("Content\\nameprefixes.txt") && File.Exists("Content\\namesuffixes.txt"))
             {
@@ -37,12 +37,12 @@ namespace Retroverse
             }
         }
 
-        public static string getRandomName()
+        public static string getRandomName(int repeatLimit = 5)
         {
             String pre = prefixes[rand.Next(prefixes.Count)];
             String suf = suffixes[rand.Next(suffixes.Count)];
-            if ((VOWELS.Contains(pre[pre.Length - 1]) && VOWELS.Contains(suf[0])) || (!VOWELS.Contains(pre[pre.Length - 1]) && !VOWELS.Contains(suf[0])))
-                return getRandomName();
+            if (repeatLimit > 0 && ((pre+suf).Length >= CHAR_LIMIT || (VOWELS.Contains(pre[pre.Length - 1]) && VOWELS.Contains(suf[0])) || (!VOWELS.Contains(pre[pre.Length - 1]) && !VOWELS.Contains(suf[0]))))
+                return getRandomName(repeatLimit - 1); //just give whatever you have after 5 tries
             else return pre + suf;
         }
 

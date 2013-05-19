@@ -11,8 +11,8 @@ namespace Retroverse
 {
     public class Prisoner : Collectable
     {
-        public static readonly int MAX_IDS = 2000;
-        public static BitArray AVAILABLE_IDS = new BitArray(MAX_IDS, false);
+        public static readonly int MAX_IDS = 9999;
+        public static BitArray TAKEN_IDS = new BitArray(MAX_IDS, false);
         public static int idsGiven = 0;
         public string name;
         public string id;
@@ -38,47 +38,61 @@ namespace Retroverse
                                                                               };
 
         public static readonly float TIME_PER_TURN = 1f;
-        public float timeSinceLastTurn = (float)Game1.rand.NextDouble() * TIME_PER_TURN;
+        public float timeSinceLastTurn = (float)RetroGame.rand.NextDouble() * TIME_PER_TURN;
         static Prisoner()
         {
+            TAKEN_IDS[0] = true;
             if (MAX_IDS > 1337)
-                AVAILABLE_IDS[1337] = true;
+                TAKEN_IDS[1337] = true;
         }
 
         public Prisoner(Color color, string name, int x, int y, int levelX, int levelY, int tileX, int tileY):
             base(x, y, levelX, levelY, tileX, tileY)
         {
+            CollectedSound = "PrisonerRising";
             this.setTexture("prisoner1");
             addsToProgress = false;
             this.name = name;
-            int prisonerID;
-            double r = Game1.rand.NextDouble();
-            if (r < 0.45)
-                prisonerID = Game1.rand.Next(MAX_IDS/100);
-            else if (r < 0.80)
-                prisonerID = Game1.rand.Next(MAX_IDS/10);
-            else
-                prisonerID = Game1.rand.Next(MAX_IDS);
-            idsGiven++;
-            if (idsGiven >= MAX_IDS)
-                prisonerID = 1337;
-            else
-            {
-                while (AVAILABLE_IDS[prisonerID])
-                {
-                    prisonerID = (prisonerID + 1) % MAX_IDS;
-                }
-                AVAILABLE_IDS[prisonerID] = true;
-            }
+            int prisonerID = getRandomPrisonerID();
             id = prisonerID.ToString("0000");
+            TAKEN_IDS[prisonerID] = true;
+            idsGiven++;
             emitter = Emitter.getPrebuiltEmitter(PrebuiltEmitter.PrisonerSparks);
             emitter.startColor = new Color(color.R, color.G, color.B, 255);
             emitter.endColor = new Color(color.R, color.G, color.B, 0);
             emitter.position = position;
             maskingColor = color;
             baseScore = PRISONER_SCORE;
-            flashingIndex = (Game1.rand.Next(FLASHING_SEQUENCE_ELEMENTS) / 2) * 2;
-            flashingTime = (float)Game1.rand.NextDouble() * flashingDelays[flashingIndex];
+            flashingIndex = (RetroGame.rand.Next(FLASHING_SEQUENCE_ELEMENTS) / 2) * 2;
+            flashingTime = (float)RetroGame.rand.NextDouble() * flashingDelays[flashingIndex];
+        }
+
+        public static void Initialize()
+        {
+            TAKEN_IDS = new BitArray(MAX_IDS, false);
+            idsGiven = 0;
+        }
+
+        public static int getRandomPrisonerID()
+        {
+            int prisonerID;
+            double r = RetroGame.rand.NextDouble();
+            if (r < 0.10)
+                prisonerID = RetroGame.rand.Next(1, MAX_IDS / 100);
+            else if (r < 0.45)
+                prisonerID = RetroGame.rand.Next(MAX_IDS / 100, MAX_IDS / 10);
+            else
+                prisonerID = RetroGame.rand.Next(MAX_IDS / 10, MAX_IDS);
+            if (idsGiven >= MAX_IDS)
+                prisonerID = 1337;
+            else
+            {
+                while (TAKEN_IDS[prisonerID])
+                {
+                    prisonerID = (prisonerID + 1) % MAX_IDS;
+                }
+            }
+            return prisonerID;
         }
 
         public override void Update(GameTime gameTime)
@@ -90,7 +104,7 @@ namespace Retroverse
             if (timeSinceLastTurn > TIME_PER_TURN)
             {
                 timeSinceLastTurn = 0;
-                switch (Game1.rand.Next(10))
+                switch (RetroGame.rand.Next(10))
                 {
                     case 0:
                         rotation = 0;
@@ -119,11 +133,17 @@ namespace Retroverse
             }
 
             base.Update(gameTime);
+        }
 
-            if (collectedThisFrame)
+        public override bool collectedBy(Entity e)
+        {
+            bool collected = base.collectedBy(e);
+            if (collected)
             {
-                Game1.showExclamation(new string[] { "Saved prisoner:", "" + name, "#" + id }, new Color[] { Color.White, Color.Lerp(Color.White, maskingColor, 0.5f), Color.Lerp(Color.White, maskingColor, 0.5f) }, EXCLAMATION_DURATION);
+                HUD.DisplayExclamation(new string[] { "Rescued:", "" + name, "#" + id }, new Color[] { Color.White, Color.Lerp(Color.White, maskingColor, 0.5f), Color.Lerp(Color.White, maskingColor, 0.5f) }, EXCLAMATION_DURATION);
+                ((Hero)e).AddCollectedPrisoner(this);
             }
+            return collected;
         }
 
         public override void Draw(SpriteBatch spriteBatch)
@@ -133,7 +153,7 @@ namespace Retroverse
             {
                 spriteBatch.Draw(TextureManager.Get("prisonerhat1"), position, null, Color.White, rotation, new Vector2(getTexture().Width / 2, getTexture().Height / 2), 0.5f, SpriteEffects.None, 0.5f);
                 if (drawHelp)
-                    spriteBatch.DrawString(Game1.FONT_PIXEL_SMALL, HELP_STRING, new Vector2(position.X - 30, position.Y - 40), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+                    spriteBatch.DrawString(RetroGame.FONT_PIXEL_SMALL, HELP_STRING, new Vector2(position.X - 30, position.Y - 40), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
             }
         }
     }

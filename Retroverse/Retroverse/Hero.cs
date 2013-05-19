@@ -1,492 +1,401 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
+using System.Xml.Serialization;
+
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Particles;
+using Microsoft.Xna.Framework.Input;
 
 namespace Retroverse
 {
-    public class Hero : Entity
+    public class HeroSaveState
     {
-        public static Hero instance;
-        public List<Bullet> ammo;
-        public float heroTimeScale = 1f;
-        public readonly float BULLET_FIRE_INTERVAL = 0.2f; //secs
-        public float bulletTimer = 0;
-        public float chargeTimer = 0;
-        public bool fired = false;
-        public int levelX, levelY, tileX, tileY;
-        public Emitter leftBooster;
-        public Vector2 leftBoosterOffset;
-        public Emitter rightBooster;
-        public Vector2 rightBoosterOffset;
-        public Emitter leftBoosterIdle;
-        public Emitter rightBoosterIdle;
-        public Emitter leftBoosterFiring;
-        public Emitter rightBoosterFiring;
-        public float boosterAngle;
-        public static readonly float BOOSTER_LENGTH = 12;
-        public static readonly float MOVE_SPEED = 200f;
-        public static float moveSpeedMultiplier = 1f;
-        private readonly Dictionary<Direction, float> DIR_TO_ROTATION = new Dictionary<Direction, float>(){
+        public PlayerIndex index;
+        [XmlElement(Type = typeof(XmlColor))]
+        public Color color;
+        public string name;
+        public int id;
+        public List<PrisonerInfo> freedPrisoners;
+        public int collectedGems;
+        public int killedEnemyCount;
+        public int hitByEnemyCount;
+
+        private HeroSaveState() { }
+        public HeroSaveState(Hero hero)
+        {
+            index = hero.PlayerIndex;
+            color = hero.color;
+            name = hero.prisonerName;
+            id = hero.prisonerID;
+            freedPrisoners = hero.FreedPrisoners;
+            collectedGems = hero.CollectedGems;
+            killedEnemyCount = hero.KilledEnemyCount;
+            hitByEnemyCount = hero.HitByEnemyCount;
+        }
+    }
+
+    public struct PrisonerInfo
+    {
+        public string id;
+        public string name;
+        [XmlElement(Type = typeof(XmlColor))]
+        public Color color;
+    }
+
+    public class Hero : Entity, IReversible
+    {
+        public static readonly Color[] NEW_HERO_COLORS = new Color[RetroGame.MAX_PLAYERS] { Color.Transparent, Color.Transparent };
+        public static readonly string[] NEW_HERO_NAMES = new string[RetroGame.MAX_PLAYERS] { "", "" };
+        public static readonly int[] NEW_HERO_IDS = new int[RetroGame.MAX_PLAYERS] { 0, 0 };
+
+        public static float HERO_TIMESCALE = 1f;
+        public int playerIndex;
+        public PlayerIndex PlayerIndex;
+        public Bindings bindings;
+        public string prisonerName;
+        public int prisonerID;
+        public Color color;
+        public bool Alive { get; private set; }
+        public bool Fugitive { get { return Alive && RetroGame.HasDrilled; } }
+
+        public int CollectedSand { get; set; }
+        public int CollectedBombs { get; set; }
+        public int CollectedGems { get; set; }
+        public int KilledEnemyCount { get; set; }
+        public int HitByEnemyCount { get; set; }
+
+        public List<PrisonerInfo> FreedPrisoners = new List<PrisonerInfo>();
+
+        private static readonly Dictionary<Direction, float> DIR_TO_ROTATION = new Dictionary<Direction, float>(){
             {Direction.Up, (float)Math.PI},
             {Direction.Down, 0},
             {Direction.Left, (float)Math.PI / 2f},
             {Direction.Right, (float)Math.PI * 3f / 2f},
         };
 
-        public static readonly float BOOST_CONSTANT_SPEED_MULTIPLIER = 1.5f;
-        public static readonly float BOOST_BURST_SPEED_MULTIPLIER = 2.75f;
-        public static readonly float BURST_DURATION = 0.5f; //secs
-        public static readonly float BURST_COOLDOWN = 2f; //secs
-        public float burstTimer = 0;
-        public float burstRecharge = 0;
-        public float timeInBurst = 0;
-        public bool bursting = false;
-        public static readonly Color BOOST_IDLE_RECHARGED_COLOR = new Color(0, 128, 255, 255);
-        public static readonly Color BOOST_IDLE_NOT_RECHARGED_COLOR = new Color(255, 140, 0, 255);
+        public const float INITIAL_HEALTH = 10f;
+        public float health = INITIAL_HEALTH;
 
-        public static readonly Color EMITTER_STRAIGHT_COLOR = new Color(207, 17, 17, 255);
-        public static readonly Color EMITTER_SIDE_COLOR = new Color(43, 186, 39, 255);
-        public static readonly Color EMITTER_CHARGE_COLOR = new Color(204, 185, 67, 255);
-        public static readonly int BULLET_DAMAGE_NORMAL = 2;
-        public static readonly int BULLET_DAMAGE_CHARGE_SMALL = 1;
-        public static readonly int BULLET_DAMAGE_CHARGE_MEDIUM = 2;
-        public static readonly int BULLET_DAMAGE_CHARGE_LARGE = 3;
-        public static readonly float BULLET_CHARGE_TIME_SMALL = 0.25f; //secs
-        public static readonly float BULLET_CHARGE_TIME_MEDIUM = 1f; //secs
-        public static readonly float BULLET_CHARGE_TIME_LARGE = 2f; //secs
-        public static readonly Color CHARGE_COLOR_SMALL = new Color(248, 180, 100, 255);
-        public static readonly Color CHARGE_COLOR_MEDIUM = new Color(248, 248, 56, 255);
-        public static readonly Color CHARGE_COLOR_LARGE = new Color(248, 248, 175, 255);
-        public static readonly float BULLET_NORMAL_SCALE = 0.375f;
-        public static readonly float BULLET_SMALL_SCALE = 0.25f;
-        public static readonly float BULLET_MEDIUM_SCALE = 0.5f;
-        public static readonly float BULLET_LARGE_SCALE = 1f;
-        public static readonly float CHARGE_PARTICLES_SMALL_SCALE = 0.25f;
-        public static readonly float CHARGE_PARTICLES_MEDIUM_SCALE = 0.4f;
-        public static readonly float CHARGE_PARTICLES_LARGE_SCALE = 0.7f;
-        public Emitter chargeEmitter;
+        public const float REVIVE_HEALTH = INITIAL_HEALTH / 5;
+        public PlayerPrisoner playerPrisoner;
 
-        public static readonly float DRILL_SINGLE_TIME = 1.5f; // seconds to drill
-        public static readonly float DRILL_TRIPLE_TIME = 3f; // seconds to drill
-        public Emitter drillEmitter;
-        public Emitter drillEmitterLeft;
-        public Emitter drillEmitterRight;
-        public bool drilling = false;
-        public float drillingTime = 0; // secs
-        public float drillingRatio = 0; // secs
+        public int nextLevelX, nextLevelY, nextTileX, nextTileY;
+        public Level nextLevel;
+        public bool moved;
 
-        public static readonly float INVINCIBILITY_INTERVAL = 0.5f;
-        public bool invincible = false;
-        public float invincibilityTimer = 0;
+        public Dictionary<string, Powerup> Powerups { get; private set; }
+        // add powerup-specific values here
+        public float powerupCooldownModifier = 1f;
+        public float globalMoveSpeedMultiplier = 1f;
+        public bool teleportedThisFrame = false;
 
-        public int powerupBoost; //, 0= Normal, 1=Bursts, 2= Fast, 3=Reverse
-        public int powerupDrill; //, 0= Normal, 1=singledrill, 2=tripledrill
-        public int powerupGun; // 0=Normal, 1=Front, 2=Side, 3=Charge
-        public int powerupRetro; // 0=Normal, 1=RetroPort, 2=RetroStatis
-        public int powerupRadar; // 0=Normal, 1=Radar
+        public Vector2 movement;
+        public const float MOVE_SPEED = 225f;
 
-        public Hero()
-            : base(new Hitbox(32, 32))
+        public Hero(PlayerIndex PlayerIndex)
+            : base(new Vector2(Level.TEX_SIZE * LevelManager.STARTING_LEVEL.X + (Level.TILE_SIZE * (LevelManager.STARTING_TILE.X + 0.5f)), 
+                               Level.TEX_SIZE * LevelManager.STARTING_LEVEL.Y + (Level.TILE_SIZE * (LevelManager.STARTING_TILE.Y + 0.5f))),
+                   new Hitbox(32, 32))
         {
-            position = new Vector2(Level.TEX_SIZE * LevelManager.STARTING_LEVEL.X + (Level.TILE_SIZE * (LevelManager.STARTING_TILE.X + 0.5f)), Level.TEX_SIZE * LevelManager.STARTING_LEVEL.Y + (Level.TILE_SIZE * (LevelManager.STARTING_TILE.Y + 0.5f)));
-            setCurrentLevelAndTile();
-            this.setTexture("player2");
+            Alive = true;
+            this.PlayerIndex = PlayerIndex;
+            this.playerIndex = (int)PlayerIndex;
+            bindings = new Bindings(PlayerIndex);
+            updateCurrentLevelAndTile();
+
+            Powerups = new Dictionary<string, Powerup>();
+            setTexture("hero");
             direction = Direction.Up;
-            ammo = new List<Bullet>();
-            instance = this;
-            scale = 0.5f;
+            scale = 32f / getTexture().Width;
         }
 
-        public static void Initialize(int checkpoint)
+        public Hero(HeroSaveState saveState)
+            : this(saveState.index)
         {
-            instance.InitializeHero(checkpoint);
+            color = saveState.color;
+            maskingColor = saveState.color;
+            prisonerName = saveState.name;
+            prisonerID = saveState.id;
+            Prisoner.TAKEN_IDS[prisonerID] = true;
+            History.RegisterReversible(this);
+            FreedPrisoners = saveState.freedPrisoners;
+            CollectedGems = saveState.collectedGems;
+            KilledEnemyCount = saveState.killedEnemyCount;
+            HitByEnemyCount = saveState.hitByEnemyCount;
         }
 
-        private void InitializeHero(int checkpoint)
+        public void Initialize()
         {
-            if (checkpoint < 5)
+#if DEBUG
+            AddPowerup(typeof(Flamethrower));
+            AddPowerup(typeof(TimedSpeedBoost));
+            AddPowerup(typeof(AdrenalinePickup));
+            AddPowerup(typeof(FireChains));
+            AddPowerup(typeof(DrillFast));
+            AddPowerup(typeof(RocketBurst));
+            Inventory.StorePowerup(new DrillTriple(this));
+            Inventory.StorePowerup(new ShieldSlow(this));
+            Inventory.StorePowerup(new ShieldDamage(this));
+            Inventory.StorePowerup(new BombTimed(this));
+            Inventory.StorePowerup(new BombSet(this));
+            AddPowerup(typeof(RescuePowerup));
+            if (this == RetroGame.getHeroes()[0])
+                AddPowerup(typeof(FireChains));
+#endif
+
+            color = NEW_HERO_COLORS[playerIndex];
+            maskingColor = color;
+            prisonerName = NEW_HERO_NAMES[playerIndex];
+            prisonerID = NEW_HERO_IDS[playerIndex];
+            Prisoner.TAKEN_IDS[prisonerID] = true;
+            History.RegisterReversible(this);
+        }
+
+        public Powerup AddPowerup(Type powerupType, bool automaticallySetPowerupIcon = true)
+        {
+            Powerup powerup = null;
+            if (powerupType.IsSubclassOf(typeof(CoOpPowerup)))
             {
-                powerupRadar = 0;
-                if (checkpoint < 4)
+                //gets the other hero from the list of heroes (or just another hero if for some reason there are more than 2 heroes)
+                Hero otherHero = null;
+                foreach (Hero h in RetroGame.getHeroes())
                 {
-                    powerupDrill = 0;
-                    if (checkpoint < 3)
+                    if (h != this)
                     {
-                        powerupRetro = 0;
-                        if (checkpoint < 2)
-                        {
-                            powerupGun = 0;
-                            if (checkpoint < 1)
-                            {
-                                powerupBoost = 0;
-                            }
-                        }
+                        otherHero = h;
+                        break;
                     }
                 }
+                if (otherHero == null)
+                    return null;
+                powerup = (Powerup)powerupType.GetConstructor(new Type[] { typeof(Hero), typeof(Hero) }).Invoke(new object[] { this, otherHero });
             }
-            leftBoosterFiring = Emitter.getPrebuiltEmitter(PrebuiltEmitter.RocketBoostFire);
-            rightBoosterFiring = Emitter.getPrebuiltEmitter(PrebuiltEmitter.RocketBoostFire);
-            leftBoosterIdle = Emitter.getPrebuiltEmitter(PrebuiltEmitter.IdleBoostFire);
-            rightBoosterIdle = Emitter.getPrebuiltEmitter(PrebuiltEmitter.IdleBoostFire);
-            drillEmitter = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
-            drillEmitterLeft = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
-            drillEmitterRight = Emitter.getPrebuiltEmitter(PrebuiltEmitter.DrillSparks);
-            chargeEmitter = Emitter.getPrebuiltEmitter(PrebuiltEmitter.ChargingSparks);
-            leftBooster = leftBoosterIdle;
-            rightBooster = rightBoosterIdle;
-            moveSpeedMultiplier = 1;
+            else
+            {
+                powerup = (Powerup)powerupType.GetConstructor(new Type[] { typeof(Hero) }).Invoke(new object[] { this });
+            }
+
+            if (Inventory.EquipPowerup(powerup, playerIndex, automaticallySetPowerupIcon))
+            {
+                Powerups.Add(powerup.GenericName, powerup);
+                powerup.OnAddedToHero();
+                if (powerup is IReversible)
+                {
+                    History.RegisterReversible((IReversible)powerup);
+                }
+                History.Clear();
+            }
+            return powerup;
         }
 
-        public void fire()
+        public void RemovePowerup(string genericPowerupName, bool automaticallyStoreInInventory = true)
         {
-            fired = true;
-            if (bulletTimer < BULLET_FIRE_INTERVAL)
+            Powerup powerup = Powerups[genericPowerupName];
+            Inventory.UnequipPowerup(playerIndex, powerup.Active, powerup);
+            if (automaticallyStoreInInventory)
+                Inventory.StorePowerup(powerup);
+            Powerups.Remove(genericPowerupName);
+            powerup.OnRemovedFromHero();
+            if (powerup is IReversible)
+            {
+                History.UnRegisterReversible((IReversible)powerup);
+            }
+        }
+
+        public Powerup GetPowerup(string genericPowerupName)
+        {
+            if (Powerups.Keys.Contains(genericPowerupName))
+                return Powerups[genericPowerupName];
+            return null;
+        }
+
+        public bool HasPowerup(string genericPowerupName)
+        {
+            return Powerups.Keys.Contains(genericPowerupName);
+        }
+
+        public static bool CanSwapPowerups(Powerup powerup1, Powerup powerup2)
+        {
+            if (powerup1.Active == powerup2.Active)
+            {
+
+            }
+            return false;
+        }
+
+        public void hitBy(Enemy e, float damage)
+        {
+            if (RetroGame.INVINCIBILITY)
                 return;
-            bulletTimer = 0;
-            if (powerupGun == 0)
-            { }
-            else if (powerupGun == 1)
+            health -= damage;
+            if (health <= 0)
             {
-                ammo.Add(new Bullet("bullet1", PrebuiltEmitter.SmallBulletSparks, EMITTER_STRAIGHT_COLOR, direction, Bullet.DISTANCE_LIMIT_NORMAL, BULLET_DAMAGE_NORMAL));
-                ammo.Last().position = new Vector2(this.position.X, this.position.Y);
-                ammo.Last().scale = BULLET_NORMAL_SCALE;
-                ammo.Last().hitbox.originalRectangle.Height = (int)(20);
-                ammo.Last().hitbox.originalRectangle.Width = (int)(20);
-            }
-            else if (powerupGun == 2)
-            {
-                Direction dirLeft = Direction.None, dirRight = Direction.None;
-                switch (direction)
+                if (attemptDie())
                 {
-                    case Direction.Up:
-                        dirLeft = Direction.Left;
-                        dirRight = Direction.Right;
-                        break;
-                    case Direction.Down:
-                        dirLeft = Direction.Right;
-                        dirRight = Direction.Left;
-                        break;
-                    case Direction.Left:
-                        dirLeft = Direction.Down;
-                        dirRight = Direction.Up;
-                        break;
-                    case Direction.Right:
-                        dirLeft = Direction.Up;
-                        dirRight = Direction.Down;
-                        break;
+                    playerPrisoner = new PlayerPrisoner(this, levelX, levelY, tileX, tileY);
+                    RetroGame.EscapeScreen.levelManager.levels[levelX, levelY].prisoners.Add(playerPrisoner);
+                    return;
                 }
-                ammo.Add(new Bullet("bullet2", PrebuiltEmitter.SmallBulletSparks, EMITTER_SIDE_COLOR, dirLeft, Bullet.DISTANCE_LIMIT_NORMAL, BULLET_DAMAGE_NORMAL));
-                ammo.Last().position = new Vector2(this.position.X, this.position.Y);
-                ammo.Last().scale = BULLET_NORMAL_SCALE;
-                ammo.Last().hitbox.originalRectangle.Height = (int)(20);
-                ammo.Last().hitbox.originalRectangle.Width = (int)(20);
-                ammo.Add(new Bullet("bullet2", PrebuiltEmitter.SmallBulletSparks, EMITTER_SIDE_COLOR, dirRight, Bullet.DISTANCE_LIMIT_NORMAL, BULLET_DAMAGE_NORMAL));
-                ammo.Last().position = new Vector2(this.position.X, this.position.Y);
-                ammo.Last().scale = BULLET_NORMAL_SCALE;
-                ammo.Last().hitbox.originalRectangle.Height = (int)(20);
-                ammo.Last().hitbox.originalRectangle.Width = (int)(20);
             }
+            SoundManager.PlaySoundOnce("PlayerHit", playInReverseDuringReverse: true);
         }
 
-        public bool activateRetro()
+        public bool attemptDie()
         {
-            bool successful = false;
-            switch (Game1.state)
+            //On-death powerup activation
+            if (HasPowerup("Retro"))
             {
-                case GameState.Arena:
-                case GameState.Escape:
-                    if (powerupRetro == 1)
-                    {
-                        if (Game1.availableSand > 0 && History.canRevert())
-                        {
-                            History.lastState = Game1.state;
-                            Game1.state = GameState.RetroPort;
-                            Game1.removeSand();
-                            successful = true;
-                        }
-                    }
-                    else if (powerupRetro == 2)
-                    {
-                        if (Game1.availableSand > 0 && RetroStasis.canActivate())
-                        {
-                            RetroStasis.activate();
-                            Game1.removeSand();
-                            successful = true;
-                        }
-                        else
-                        {
-                            if (RetroStasis.canDeactivate())
-                            {
-                                RetroStasis.deactivate();
-                                successful = true;
-                            }
-                        }
-                    }
-                    break;
-                case GameState.RetroPort:
-                    if (powerupRetro == 1)
-                    {
-                        History.cancelRevert();
-                        successful = true;
-                    }
-                    break;
-            }
-            return successful;
-        }
-
-        public void special2()
-        {
-        }
-
-        public void burst()
-        {
-            if (Game1.state == GameState.Arena || Game1.state == GameState.Escape)
-                if (powerupBoost == 1 && !bursting && burstRecharge >= BURST_COOLDOWN)
+                if (Powerups["Retro"] is RetroPort && History.CanRevert() && RetroGame.AvailableSand > 0)
                 {
-                    bursting = true;
-                    moveSpeedMultiplier = BOOST_BURST_SPEED_MULTIPLIER;
-                    timeInBurst = 0;
+                    Powerups["Retro"].Activate(InputAction.None);
+                    return false;
                 }
+            } 
+            else if (HasPowerup("Health"))
+            {
+                if (Powerups["Health"] is FullHealthPickup)
+                {
+                    Powerups["Health"].Activate(InputAction.None);
+                    return false;
+                }
+            }
+
+            SoundManager.PlaySoundOnce("PlayerDead", playInReverseDuringReverse: true);
+
+            Alive = false;
+            if (RetroGame.getMainLiveHero() == null)
+            {
+                RetroGame.GameOver();
+                return true;
+            }
+
+            LevelManager levelManager = RetroGame.EscapeScreen.levelManager;
+            levelManager.SetCameraMode(RetroGame.EscapeScreen.levelManager.CameraMode);
+            return true;
         }
 
-        public void collideWithEnemy(Enemy e)
+        public void revive(Vector2? atPosition = null)
         {
-            if (Game1.INVINCIBILITY)
-                return;
-            if (!Game1.retroStatisActive)
+            Alive = true;
+            health = REVIVE_HEALTH;
+
+            LevelManager levelManager = RetroGame.EscapeScreen.levelManager;
+            levelManager.SetCameraMode(RetroGame.EscapeScreen.levelManager.CameraMode);
+
+            if (playerPrisoner != null)
             {
-                if (Game1.availableSand > 0 && powerupRetro == 1 && History.canRevert())
-                    activateRetro();
-                else if (Game1.availableSand > 0 && powerupRetro == 2 && RetroStasis.canActivate())
-                    activateRetro();
-                else
-                    Game1.gameOver();
+                levelManager.collectablesToRemove.Add(playerPrisoner);
+                playerPrisoner = null;
             }
+
+            if(atPosition != null) 
+                position = atPosition.Value;
+            updateCurrentLevelAndTile();
         }
 
         public void collideWithRiotGuardWall()
         {
-            if (Game1.INVINCIBILITY)
+            if (RetroGame.INVINCIBILITY)
                 return;
-            if (!Game1.retroStatisActive && Game1.state != GameState.RetroPort)
-            {
-                if (Game1.availableSand > 0 && powerupRetro == 1 && History.canRevert())
-                {
-                    activateRetro();
-                    RiotGuardWall.setReverse(true);
-                }
-                else if (Game1.availableSand > 0 && powerupRetro == 2 && RetroStasis.canActivate())
-                {
-                    activateRetro();
-                    RiotGuardWall.setReverse(true);
-                }
-                else
-                    Game1.gameOver();         
-            }
+            SoundManager.PlaySoundOnce("PlayerHit", playInReverseDuringReverse: true);
+            attemptDie();
         }
 
-        public float getPowerupCharge(int powerup)
+        public void AddCollectedPrisoner(Prisoner p)
         {
-            float charge = 0;
-            switch (powerup)
+            FreedPrisoners.Add(new PrisonerInfo { id = p.id, name = p.name, color = p.maskingColor });
+        }
+
+        public override void OnInputAction(InputAction action, bool pressedThisFrame)
+        {
+            switch (action)
             {
-                case 0:
-                    if (powerupBoost == 1)
-                        if (bursting) charge = 0;
-                        else charge = burstRecharge / BURST_COOLDOWN;
-                    else if (powerupBoost == 2)
-                        charge = 1;
+                case InputAction.Action1: //default P1 - Space,         P2 - NumPad0,   360 - A
+                case InputAction.Action2: //default P1 - Q,             P2 - NumPad9,   360 - B
+                case InputAction.Action3: //default P1 - LeftShift,     P2 - Enter,     360 - X
+                case InputAction.Action4: //default P1 - LeftControl,   P2 - Plus,      360 - Y
+                    Inventory.ActivatePowerup(playerIndex, action);
                     break;
-                case 1:
-                    if (powerupGun == 1)
-                        charge = bulletTimer / BULLET_FIRE_INTERVAL;
-                    else if (powerupGun == 2)
-                        charge = bulletTimer / BULLET_FIRE_INTERVAL;
-                    else if (powerupGun == 3)
-                        if (chargeTimer < BULLET_CHARGE_TIME_SMALL)
-                            charge = chargeTimer / BULLET_CHARGE_TIME_SMALL;
-                        else if (chargeTimer >= BULLET_CHARGE_TIME_SMALL && chargeTimer < BULLET_CHARGE_TIME_MEDIUM)
-                            charge = (chargeTimer - BULLET_CHARGE_TIME_SMALL) / (BULLET_CHARGE_TIME_MEDIUM - BULLET_CHARGE_TIME_SMALL);
-                        else if (chargeTimer >= BULLET_CHARGE_TIME_MEDIUM && chargeTimer < BULLET_CHARGE_TIME_LARGE)
-                            charge = (chargeTimer - BULLET_CHARGE_TIME_MEDIUM) / (BULLET_CHARGE_TIME_LARGE - BULLET_CHARGE_TIME_MEDIUM);
-                        else if (chargeTimer >= BULLET_CHARGE_TIME_LARGE)
-                            charge = 1;
+                case InputAction.Start: //default P1 - T, P2 - T, 360 - Start
+                    if (pressedThisFrame)
+                    {
+                        RetroGame.PauseGame(this);
+                    }
                     break;
-                case 2:
-                    if (powerupRetro == 1)
-                        if (Game1.state == GameState.RetroPort) charge = 0;
-                        else charge = History.secsSinceLastRetroPort / History.retroportSecs;
-                    else if (powerupRetro == 2)
-                        charge = RetroStasis.getChargePercentage();
+                case InputAction.Escape: //default P1 - Escape, P2 - Escape, 360 - Back
+                    if (pressedThisFrame)
+                    {
+                        RetroGame.PauseGame(this);
+                    }
                     break;
-                case 3:
-                    if (powerupDrill == 0) charge = 0;
-                    else charge = 1;
-                    break;
-                case 4:
-                    if (powerupRadar == 0) charge = 0;
-                    else charge = 1;
+                default:
                     break;
             }
-            return MathHelper.Clamp(charge, 0, 1);
         }
 
         public override void Update(GameTime gameTime)
         {
-            float seconds = gameTime.getSeconds(1f);
+            //reset per-frame powerup modification fields BEFORE updating controls
+            globalMoveSpeedMultiplier = 1;
+            powerupCooldownModifier = 1;
+            teleportedThisFrame = false;
 
-            RetroStasis.Update(gameTime);
-
-            seconds = gameTime.getSeconds(heroTimeScale);
-            bulletTimer += seconds;
-
-            if (powerupGun == 3)
+            if (!Alive)
             {
-                if (fired)
+                Powerups = (from pair in Powerups orderby pair.Value ascending select pair).ToDictionary(pair => pair.Key, pair => pair.Value);
+                foreach (Powerup p in Powerups.Values)
+                    p.Update(gameTime);
+                return;
+            }
+
+            UpdateControls(bindings, gameTime);
+#if DEBUG
+            if (this == RetroGame.getHeroes()[0])
+                UpdateDebugKeys();
+#endif
+            //remove expendable powerups
+            for (int i = 0; i < Powerups.Count; i++)
+            {
+                Powerup p = Powerups.Values.ElementAt(i);
+                if (p.toRemove)
                 {
-                    chargeTimer += seconds;
-                }
-                chargeEmitter.active = fired;
-                if (chargeTimer < BULLET_CHARGE_TIME_SMALL)
-                {
-                    chargeEmitter.active = false;
-                }
-                else if (chargeTimer >= BULLET_CHARGE_TIME_SMALL && chargeTimer < BULLET_CHARGE_TIME_MEDIUM)
-                {
-                    if (!fired)
-                    {
-                        Bullet b = new Bullet("chargebullet1", PrebuiltEmitter.SmallBulletSparks, EMITTER_CHARGE_COLOR, direction, Bullet.DISTANCE_LIMIT_CHARGE, BULLET_DAMAGE_CHARGE_SMALL);
-                        ammo.Add(b);
-                        b.scale = BULLET_SMALL_SCALE;
-                        b.hitbox.originalRectangle.Height = (int)(64 * BULLET_SMALL_SCALE);
-                        b.hitbox.originalRectangle.Width = (int)(64 * BULLET_SMALL_SCALE);
-                        b.position = new Vector2(this.position.X, this.position.Y);
-                        b.explosionEmitter.startSize = 1f;
-                        b.explosionEmitter.endSize = 1f;
-                        chargeTimer = 0;
-                    }
-                    chargeEmitter.startSize = CHARGE_PARTICLES_SMALL_SCALE;
-                    Color c = CHARGE_COLOR_SMALL;
-                    chargeEmitter.startColor = c;
-                    c.A = 255;
-                    chargeEmitter.endColor = c;
-                }
-                else if (chargeTimer >= BULLET_CHARGE_TIME_MEDIUM && chargeTimer < BULLET_CHARGE_TIME_LARGE)
-                {
-                    if (!fired)
-                    {
-                        Bullet b = new Bullet("chargebullet2", PrebuiltEmitter.MediumBulletSparks, EMITTER_CHARGE_COLOR, direction, Bullet.DISTANCE_LIMIT_CHARGE, BULLET_DAMAGE_CHARGE_MEDIUM, true);
-                        ammo.Add(b);
-                        b.scale = BULLET_MEDIUM_SCALE;
-                        b.hitbox.originalRectangle.Height = (int)(64 * BULLET_MEDIUM_SCALE);
-                        b.hitbox.originalRectangle.Width = (int)(64 * BULLET_MEDIUM_SCALE);
-                        b.position = new Vector2(this.position.X, this.position.Y);
-                        b.explosionEmitter.startSize = 1f;
-                        b.explosionEmitter.endSize = 1f;
-                        chargeTimer = 0;
-                    }
-                    chargeEmitter.startSize = CHARGE_PARTICLES_MEDIUM_SCALE;
-                    Color c = CHARGE_COLOR_MEDIUM;
-                    chargeEmitter.startColor = c;
-                    c.A = 255;
-                    chargeEmitter.endColor = c;
-                }
-                else if (chargeTimer >= BULLET_CHARGE_TIME_LARGE)
-                {
-                    if (!fired)
-                    {
-                        Bullet b = new Bullet("chargebullet3", PrebuiltEmitter.LargeBulletSparks, EMITTER_CHARGE_COLOR, direction, Bullet.DISTANCE_LIMIT_CHARGE, BULLET_DAMAGE_CHARGE_LARGE, true);
-                        ammo.Add(b);
-                        b.scale = BULLET_LARGE_SCALE;
-                        b.hitbox.originalRectangle.Height = (int)(64 * BULLET_LARGE_SCALE);
-                        b.hitbox.originalRectangle.Width = (int)(64 * BULLET_LARGE_SCALE);
-                        b.position = new Vector2(this.position.X, this.position.Y);
-                        b.explosionEmitter.startSize = 1f;
-                        b.explosionEmitter.endSize = 1f;
-                        chargeTimer = 0;
-                    }
-                    chargeEmitter.startSize = CHARGE_PARTICLES_LARGE_SCALE;
-                    Color c = CHARGE_COLOR_LARGE;
-                    chargeEmitter.startColor = c;
-                    c.A = 255;
-                    chargeEmitter.endColor = c;
+                    RemovePowerup(p.GenericName, false);
+                    i--;
                 }
             }
 
-            if (powerupBoost == 0)
-            {
-                moveSpeedMultiplier = 1f;
-            }
-            else if (powerupBoost == 2)
-            {
-                moveSpeedMultiplier = BOOST_CONSTANT_SPEED_MULTIPLIER;
-            }
-            Vector2 movement = Controller.dirVector * MOVE_SPEED * moveSpeedMultiplier * seconds;
+            Powerups = (from pair in Powerups orderby pair.Value ascending select pair).ToDictionary(pair => pair.Key, pair => pair.Value);
+            foreach (Powerup p in Powerups.Values)
+                p.Update(gameTime);
 
-            if (bursting)
-            {
-                timeInBurst += seconds;
-                if (timeInBurst >= BURST_DURATION)
-                {
-                    moveSpeedMultiplier = 1f;
-                    burstRecharge = 0;
-                    bursting = false;
-                }
-            }
-            else
-            {
-                burstRecharge += seconds;
-            }
+            float seconds = gameTime.getSeconds(HERO_TIMESCALE);
+            movement = dirVector * MOVE_SPEED * globalMoveSpeedMultiplier * seconds;
 
-            setCurrentLevelAndTile();
-            Level level = Game1.levelManager.levels[levelX, levelY];
+            updateCurrentLevelAndTile();
+            Level level = RetroGame.getLevels()[levelX, levelY];
 
             float nextX = position.X + movement.X;
             float nextY = position.Y + movement.Y;
-            //Console.WriteLine(position.X+ " "+ position.Y);
-            bool moved = true;
+            moved = true;
             int n;
-            if (heroTimeScale > 0f)
+            if (HERO_TIMESCALE > 0f)
             {
-                switch (Controller.direction)
+                switch (controllerDirection)
                 {
                     case Direction.Up:
-                        moved = canMove(new Vector2(0, movement.Y));
-                        if (!moved)
-                        {
-                            n = (int)position.Y;
-                            nextY = n + Level.TILE_SIZE / 2 - (n % Level.TILE_SIZE);
-                        }
-                        leftBoosterOffset = new Vector2(-6, 12);
-                        rightBoosterOffset = new Vector2(6, 12);
-                        boosterAngle = (float)Math.PI / 2;
-                        break;
                     case Direction.Down:
-                        moved = canMove(new Vector2(0, movement.Y));
+                        moved = canMove(movement);
                         if (!moved)
                         {
                             n = (int)position.Y;
-                            nextY = n + Level.TILE_SIZE / 2 - (n % Level.TILE_SIZE);
+                            nextY = n - (n % Level.TILE_SIZE) + Level.TILE_SIZE / 2;
                         }
-                        leftBoosterOffset = new Vector2(6, -12);
-                        rightBoosterOffset = new Vector2(-6, -12);
-                        boosterAngle = (float)Math.PI * 3 / 2;
                         break;
                     case Direction.Left:
-                        moved = canMove(new Vector2(movement.X, 0));
-                        if (!moved)
-                        {
-                            n = (int)position.X;
-                            nextX = n - (n % Level.TILE_SIZE) + Level.TILE_SIZE / 2;
-                        }
-                        leftBoosterOffset = new Vector2(12, 6);
-                        rightBoosterOffset = new Vector2(12, -6);
-                        boosterAngle = 0;
-                        break;
                     case Direction.Right:
                         moved = canMove(new Vector2(movement.X, 0));
                         if (!moved)
@@ -494,9 +403,6 @@ namespace Retroverse
                             n = (int)position.X;
                             nextX = n - (n % Level.TILE_SIZE) + Level.TILE_SIZE / 2;
                         }
-                        leftBoosterOffset = new Vector2(-12, -6);
-                        rightBoosterOffset = new Vector2(-12, 6);
-                        boosterAngle = (float)Math.PI;
                         break;
                     default:
                         nextX = position.X;
@@ -504,46 +410,39 @@ namespace Retroverse
                         break;
                 }
             }
-            if (Controller.direction != Direction.None)
+            if (controllerDirection != Direction.None)
             {
-                rotation = DIR_TO_ROTATION[Controller.direction];
-                if (Controller.direction != direction) // reset drilling if direction changes
-                    drillingTime = 0;
-                direction = Controller.direction;
+                direction = controllerDirection;
             }
+            rotation = DIR_TO_ROTATION[direction];
             position = new Vector2(nextX, nextY);
             // check corners
+            LevelManager levelManager = RetroGame.TopLevelManagerScreen.levelManager;
             if (moved &&
-                (Game1.levelManager.collidesWithWall(new Vector2(getLeft().X, getTop().Y)) || //topleft
-                Game1.levelManager.collidesWithWall(new Vector2(getLeft().X, getBottom().Y)) || //botleft
-                Game1.levelManager.collidesWithWall(new Vector2(getRight().X, getBottom().Y)) || //botright
-                Game1.levelManager.collidesWithWall(new Vector2(getRight().X, getTop().Y)))) //topright
+                (levelManager.collidesWithWall(new Vector2(getLeft().X, getTop().Y)) || //topleft
+                levelManager.collidesWithWall(new Vector2(getLeft().X, getBottom().Y)) || //botleft
+                levelManager.collidesWithWall(new Vector2(getRight().X, getBottom().Y)) || //botright
+                levelManager.collidesWithWall(new Vector2(getRight().X, getTop().Y)))) //topright
             {
-                switch (Controller.direction)
+                switch (controllerDirection)
                 {
                     case Direction.Up:
-                        n = (int)position.X;
-                        nextX = n - (n % Level.TILE_SIZE) + Level.TILE_SIZE / 2;
-                        break;
                     case Direction.Down:
                         n = (int)position.X;
                         nextX = n - (n % Level.TILE_SIZE) + Level.TILE_SIZE / 2;
                         break;
                     case Direction.Left:
-                        n = (int)position.Y;
-                        nextY = n + Level.TILE_SIZE / 2 - (n % Level.TILE_SIZE);
-                        break;
                     case Direction.Right:
                         n = (int)position.Y;
-                        nextY = n + Level.TILE_SIZE / 2 - (n % Level.TILE_SIZE);
+                        nextY = n - (n % Level.TILE_SIZE) + Level.TILE_SIZE / 2;
                         break;
                     default:
                         break;
                 }
             }
             position = new Vector2(nextX, nextY);
-
-            int nextTileX = -1, nextTileY = -1;
+            nextTileX = -1;
+            nextTileY = -1;
             switch (direction)
             {
                 case Direction.Up:
@@ -563,22 +462,23 @@ namespace Retroverse
                     nextTileY = tileY;
                     break;
             }
-            int nextLevelX = -1, nextLevelY = -1;
-            Level nextLevel = null;
+            nextLevelX = -1;
+            nextLevelY = -1;
+            nextLevel = null;
             if (nextTileX < 0)
             {
                 nextLevelX = levelX - 1;
                 nextLevelY = levelY;
                 if (nextLevelX >= 0)
-                    nextLevel = Game1.levelManager.levels[nextLevelX, nextLevelY];
-                nextTileX = LevelContent.LEVEL_SIZE - 1;
+                    nextLevel = RetroGame.getLevels()[nextLevelX, nextLevelY];
+                nextTileX = Level.GRID_SIZE - 1;
             }
-            else if (nextTileX >= LevelContent.LEVEL_SIZE)
+            else if (nextTileX >= Level.GRID_SIZE)
             {
                 nextLevelX = levelX + 1;
                 nextLevelY = levelY;
                 if (nextLevelX < LevelManager.MAX_LEVELS)
-                    nextLevel = Game1.levelManager.levels[nextLevelX, nextLevelY];
+                    nextLevel = RetroGame.getLevels()[nextLevelX, nextLevelY];
                 nextTileX = 0;
             }
             else if (nextTileY < 0)
@@ -586,320 +486,263 @@ namespace Retroverse
                 nextLevelX = levelX;
                 nextLevelY = levelY - 1;
                 if (nextLevelY >= 0)
-                    nextLevel = Game1.levelManager.levels[nextLevelX, nextLevelY];
-                nextTileY = LevelContent.LEVEL_SIZE - 1;
+                    nextLevel = RetroGame.getLevels()[nextLevelX, nextLevelY];
+                nextTileY = Level.GRID_SIZE - 1;
             }
-            else if (nextTileY >= LevelContent.LEVEL_SIZE)
+            else if (nextTileY >= Level.GRID_SIZE)
             {
                 nextLevelX = levelX;
                 nextLevelY = levelY + 1;
                 if (nextLevelY < LevelManager.MAX_LEVELS)
-                    nextLevel = Game1.levelManager.levels[nextLevelX, nextLevelY];
+                    nextLevel = RetroGame.getLevels()[nextLevelX, nextLevelY];
                 nextTileY = 0;
             }
             else
             {
                 nextLevel = level;
-            }
-            float DRILL_OFFSET = 16;
-            Vector2 drillOffset = Vector2.Zero, drillOffsetLeft = Vector2.Zero, drillOffsetRight = Vector2.Zero;
-            float drillRotation;
-            bool drillingLeft = false;
-            bool drillingRight = false;
-            switch (direction)
+            }            
+
+            //collision with collectables
+            if (Alive)
             {
-                case Direction.Up:
-                    drillOffset = new Vector2((levelX * Level.TEX_SIZE + tileX * Level.TILE_SIZE + Level.TILE_SIZE / 2) - position.X, -DRILL_OFFSET);
-                    if (nextLevel != null)
-                    {
-                        if (nextTileX > 0)
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX - 1, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X - Level.TILE_SIZE, drillOffset.Y);
-                        }
-                        else
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX + 2, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X + 2 * Level.TILE_SIZE, drillOffset.Y);
-                        }
-                        if (nextTileX < LevelContent.LEVEL_SIZE - 1)
-                        {
-                            drillingRight = nextLevel.grid[nextTileX + 1, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X + Level.TILE_SIZE, drillOffset.Y);
-                        }
-                        else
-                        {
-                            drillingRight = nextLevel.grid[nextTileX - 2, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X - 2 * Level.TILE_SIZE, drillOffset.Y);
-                        }
-                    }
-                    drillRotation = 0;
-                    break;
-                case Direction.Down:
-                    drillOffset = new Vector2((levelX * Level.TEX_SIZE + tileX * Level.TILE_SIZE + Level.TILE_SIZE / 2) - position.X, DRILL_OFFSET);
-                    if (nextLevel != null)
-                    {
-                        if (nextTileX > 0)
-                        {
-                            drillingRight = nextLevel.grid[nextTileX - 1, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X - Level.TILE_SIZE, drillOffset.Y);
-                        }
-                        else
-                        {
-                            drillingRight = nextLevel.grid[nextTileX + 2, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X + 2 * Level.TILE_SIZE, drillOffset.Y);
-                        }
-                        if (nextTileX < LevelContent.LEVEL_SIZE - 1)
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX + 1, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X + Level.TILE_SIZE, drillOffset.Y);
-                        }
-                        else
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX - 1, nextTileY] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X - 2 * Level.TILE_SIZE, drillOffset.Y);
-                        }
-                    }
-                    drillRotation = (float)Math.PI;
-                    break;
-                case Direction.Left:
-                    drillOffset = new Vector2(-DRILL_OFFSET, (levelY * Level.TEX_SIZE + tileY * Level.TILE_SIZE + Level.TILE_SIZE / 2) - position.Y);
-                    if (nextLevel != null)
-                    {
-                        if (nextTileY > 0)
-                        {
-                            drillingRight = nextLevel.grid[nextTileX, nextTileY - 1] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X, drillOffset.Y - Level.TILE_SIZE);
-                        }
-                        else
-                        {
-                            drillingRight = nextLevel.grid[nextTileX, nextTileY + 2] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X, drillOffset.Y + 2 * Level.TILE_SIZE);
-                        }
-                        if (nextTileY < LevelContent.LEVEL_SIZE - 1)
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX, nextTileY + 1] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X, drillOffset.Y + Level.TILE_SIZE);
-                        }
-                        else
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX, nextTileY - 2] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X, drillOffset.Y - 2 * Level.TILE_SIZE);
-                        }
-                    }
-                    drillRotation = (float)Math.PI / 2;
-                    break;
-                case Direction.Right:
-                    drillOffset = new Vector2(DRILL_OFFSET, (levelY * Level.TEX_SIZE + tileY * Level.TILE_SIZE + Level.TILE_SIZE / 2) - position.Y);
-                    if (nextLevel != null)
-                    {
-                        if (nextTileY > 0)
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX, nextTileY - 1] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X, drillOffset.Y - Level.TILE_SIZE);
-                        }
-                        else
-                        {
-                            drillingLeft = nextLevel.grid[nextTileX, nextTileY + 2] == LevelContent.LevelTile.Black;
-                            drillOffsetLeft = new Vector2(drillOffset.X, drillOffset.Y + 2 * Level.TILE_SIZE);
-                        }
-                        if (nextTileY < LevelContent.LEVEL_SIZE - 1)
-                        {
-                            drillingRight = nextLevel.grid[nextTileX, nextTileY + 1] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X, drillOffset.Y + Level.TILE_SIZE);
-                        }
-                        else
-                        {
-                            drillingRight = nextLevel.grid[nextTileX, nextTileY - 2] == LevelContent.LevelTile.Black;
-                            drillOffsetRight = new Vector2(drillOffset.X, drillOffset.Y - 2 * Level.TILE_SIZE);
-                        }
-                    }
-                    drillRotation = (float)Math.PI * 3 / 2;
-                    break;
-            }
-            drilling = false;
-            if (nextLevel != null)
-            {
-                LevelContent.LevelTile nextTile = nextLevel.grid[nextTileX, nextTileY];
-                if (!moved && nextTile.Equals(LevelContent.LevelTile.Black)) //drill
+                foreach (Level l in levelManager.CurrentLevels)
                 {
-                    if (powerupDrill == 1)
-                    {
-                        drilling = true;
-                        drillingTime += seconds * moveSpeedMultiplier;
-                        if (drillingTime >= DRILL_SINGLE_TIME)
-                        {
-                            nextLevel.drillWall(nextTileX, nextTileY);
-                            drillingTime = 0;
-                        }
-                        drillingRatio = drillingTime / DRILL_SINGLE_TIME;
-                    }
-                    else if (powerupDrill == 2)
-                    {
-                        drilling = true;
-                        drillingTime += seconds * moveSpeedMultiplier;
-                        if (drillingTime >= DRILL_TRIPLE_TIME)
-                        {
-                            switch (direction)
-                            {
-                                case Direction.Up:
-                                case Direction.Down:
-                                    if (!nextLevel.drillWall(nextTileX + 1, nextTileY))
-                                        nextLevel.drillWall(nextTileX - 2, nextTileY);
-                                    if (!nextLevel.drillWall(nextTileX - 1, nextTileY))
-                                        nextLevel.drillWall(nextTileX + 2, nextTileY);
-                                    break;
-                                case Direction.Left:
-                                case Direction.Right:
-                                    if (!nextLevel.drillWall(nextTileX, nextTileY + 1))
-                                        nextLevel.drillWall(nextTileX, nextTileY - 2);
-                                    if (!nextLevel.drillWall(nextTileX, nextTileY - 1))
-                                        nextLevel.drillWall(nextTileX, nextTileY + 2);
-                                    break;
-                            }
-                            nextLevel.drillWall(nextTileX, nextTileY);
-                            drillingTime = 0;
-                        }
-                        drillingRatio = drillingTime / DRILL_TRIPLE_TIME;
-                    }
-                }
-            }
-            if (drilling)
-            {
-                if (powerupDrill == 1)
-                {
-                    drillEmitter.active = true;
-                    drillEmitter.position = position + drillOffset;
-                    drillEmitter.startSize = 1.5f * drillingRatio + 0.2f;
-                }
-                else
-                {
-                    drillEmitter.active = true;
-                    drillEmitter.position = position + drillOffset;
-                    drillEmitter.startSize = 1.5f * drillingRatio + 0.2f;
-                    drillEmitterLeft.active = drillingLeft;
-                    drillEmitterLeft.position = position + drillOffsetLeft;
-                    drillEmitterLeft.startSize = 1.5f * drillingRatio + 0.2f;
-                    drillEmitterRight.active = drillingRight;
-                    drillEmitterRight.position = position + drillOffsetRight;
-                    drillEmitterRight.startSize = 1.5f * drillingRatio + 0.2f;
-                }
-            }
-            else
-            {
-                drillEmitter.active = false;
-                drillingTime -= seconds * 4;
-                if (drillingTime < 0)
-                    drillingTime = 0;
-                drillingRatio = drillingTime / DRILL_TRIPLE_TIME;
-                if (powerupDrill == 2)
-                {
-                    drillEmitterLeft.active = false;
-                    drillEmitterRight.active = false;
+                    foreach (Collectable c in l.collectables)
+                        if (c.ableToBeCollected && hitbox.intersects(c.hitbox))
+                            c.collectedBy(this);
+                    foreach (Prisoner p in l.prisoners)
+                        if (p.ableToBeCollected && hitbox.intersects(p.hitbox))
+                            p.collectedBy(this);
+                    foreach (PowerupIcon p in l.powerups)
+                        if (p.ableToBeCollected && hitbox.intersects(p.hitbox))
+                            p.collectedBy(this);
                 }
             }
 
-            // update particles
-            if (bursting || powerupBoost == 2)
-            {
-                leftBoosterFiring.active = true;
-                rightBoosterFiring.active = true;
-                leftBoosterIdle.active = false;
-                rightBoosterIdle.active = false;
-            }
-            else
-            {
-                leftBoosterIdle.active = true;
-                rightBoosterIdle.active = true;
-                leftBoosterFiring.active = false;
-                rightBoosterFiring.active = false;
-            }
-            leftBoosterFiring.position = position + leftBoosterOffset;
-            rightBoosterFiring.position = position + rightBoosterOffset;
-            leftBoosterFiring.angle = boosterAngle;
-            rightBoosterFiring.angle = boosterAngle;
-            leftBoosterIdle.position = position + leftBoosterOffset;
-            rightBoosterIdle.position = position + rightBoosterOffset;
-            leftBoosterIdle.angle = boosterAngle;
-            rightBoosterIdle.angle = boosterAngle;
-            if (bursting || powerupBoost == 2)
-            {
-                float speed = movement.Length();
-                leftBoosterFiring.valueToDeath = BOOSTER_LENGTH * (1 + speed / (MOVE_SPEED * seconds));
-                rightBoosterFiring.valueToDeath = BOOSTER_LENGTH * (1 + speed / (MOVE_SPEED * seconds));
-            }
-            if (powerupBoost == 1)
-            {
-                if (burstRecharge >= BURST_COOLDOWN)
-                {
-                    leftBoosterIdle.valueToDeath = 12;
-                    rightBoosterIdle.valueToDeath = 12;
-                    leftBoosterIdle.startColor = BOOST_IDLE_RECHARGED_COLOR;
-                    rightBoosterIdle.startColor = BOOST_IDLE_RECHARGED_COLOR;
-                }
-                else
-                {
-                    leftBoosterIdle.valueToDeath = 10;
-                    rightBoosterIdle.valueToDeath = 10;
-                    leftBoosterIdle.startColor = BOOST_IDLE_NOT_RECHARGED_COLOR;
-                    rightBoosterIdle.startColor = BOOST_IDLE_NOT_RECHARGED_COLOR;
-                }
-            }
-            chargeEmitter.position = position;
-            if (seconds > 0)
-            {
-                leftBoosterIdle.Update(gameTime);
-                rightBoosterIdle.Update(gameTime);
-                leftBoosterFiring.Update(gameTime);
-                rightBoosterFiring.Update(gameTime);
-                drillEmitter.Update(gameTime); 
-                if (powerupDrill == 2)
-                {
-                    drillEmitterLeft.Update(gameTime);
-                    drillEmitterRight.Update(gameTime); 
-                }
-                if (powerupGun == 3)
-                {
-                    chargeEmitter.Update(gameTime);
-                }
-            }
-
-            fired = false;
             base.Update(gameTime);
-        }
-
-        public void setCurrentLevelAndTile()
-        {
-            int x = (int)position.X;
-            int y = (int)position.Y;
-
-            levelX = x / Level.TEX_SIZE; // get which level you are in
-            levelY = y / Level.TEX_SIZE;
-
-            tileX = (x % Level.TEX_SIZE) / Level.TILE_SIZE; // get which tile you are moving to
-            tileY = (y % Level.TEX_SIZE) / Level.TILE_SIZE;
         }
 
         public override void Draw(SpriteBatch spriteBatch)
         {
-            History.DrawHero(spriteBatch);
-            if (powerupBoost > 0)
+            foreach (Powerup p in Powerups.Values)
             {
-                leftBoosterIdle.Draw(spriteBatch);
-                rightBoosterIdle.Draw(spriteBatch);
-                leftBoosterFiring.Draw(spriteBatch);
-                rightBoosterFiring.Draw(spriteBatch);
+                if (p.DrawBeforeHero)
+                    p.Draw(spriteBatch);
             }
-            drillEmitter.Draw(spriteBatch); 
-            if (powerupDrill == 2)
+            if (Alive)
+                base.Draw(spriteBatch);
+            foreach (Powerup p in Powerups.Values)
             {
-                drillEmitterLeft.Draw(spriteBatch);
-                drillEmitterRight.Draw(spriteBatch);
+                if (!p.DrawBeforeHero)
+                    p.Draw(spriteBatch);
             }
-            base.Draw(spriteBatch);
-            if (powerupGun == 3)
+        }
+
+        public void DrawHistorical(SpriteBatch spriteBatch, IMemento heroMemento)
+        {
+            if (heroMemento is HeroMemento)
             {
-                chargeEmitter.Draw(spriteBatch);
+                HeroMemento pastHero = (HeroMemento)heroMemento;
+                spriteBatch.Draw(getTexture(), pastHero.position, null, maskingColor.withAlpha(120), pastHero.rotation, new Vector2(getTexture().Width / 2, getTexture().Height / 2), scale, getFlip(), layer);
+            }
+        }
+
+        public void UpdateDebugKeys()
+        {
+            //update debug keys
+            if (pressedThisFrame(Keys.Y) && this == RetroGame.getHeroes()[0])
+            {
+                if (GetPowerup("Rocket") is RocketBurst)
+                {
+                    RemovePowerup("Rocket");
+                    AddPowerup(typeof(RocketBoost));
+                }
+                else
+                {
+                    if (HasPowerup("Rocket"))
+                        RemovePowerup("Rocket");
+                    AddPowerup(typeof(RocketBurst));
+                }
+            }
+            if (pressedThisFrame(Keys.U))
+            {
+                if (GetPowerup("Gun") is ShotForward)
+                {
+                    RemovePowerup("Gun");
+                    AddPowerup(typeof(ShotSide));
+                }
+                else if (GetPowerup("Gun") is ShotSide)
+                {
+                    RemovePowerup("Gun");
+                    AddPowerup(typeof(ShotCharge));
+                }
+                else if (GetPowerup("Gun") is ShotCharge)
+                {
+                    RemovePowerup("Gun");
+                    AddPowerup(typeof(Flamethrower));
+                }
+                else if (GetPowerup("Flamethrower") is Flamethrower)
+                {
+                    RemovePowerup("Flamethrower");
+                }
+                else
+                {
+                    if (HasPowerup("Gun"))
+                        RemovePowerup("Gun");
+                    AddPowerup(typeof(ShotForward));
+                }
+            }
+            else if (pressedThisFrame(Keys.I))
+            {
+                if (GetPowerup("Retro") is RetroPort)
+                {
+                    RemovePowerup("Retro");
+                    AddPowerup(typeof(RetroStasis));
+                }
+                else
+                {
+                    if (HasPowerup("Retro"))
+                        RemovePowerup("Retro");
+                    AddPowerup(typeof(RetroPort));
+                }
+            }
+            else if (pressedThisFrame(Keys.O))
+            {
+                if (GetPowerup("Drill") is DrillFast && !(GetPowerup("Drill") is DrillBasic))
+                {
+                    RemovePowerup("Drill");
+                    AddPowerup(typeof(DrillTriple));
+                }
+                else if (GetPowerup("Drill") is DrillTriple)
+                {
+                    RemovePowerup("Drill");
+                    AddPowerup(typeof(DrillBasic));
+                }
+                else
+                {
+                    if (HasPowerup("Drill"))
+                        RemovePowerup("Drill");
+                    AddPowerup(typeof(DrillFast));
+                }
+            }
+            else if (pressedThisFrame(Keys.P))
+            {
+                if (GetPowerup("Radar") is RadarPowerup)
+                {
+                    RemovePowerup("Radar");
+                }
+                else
+                {
+                    AddPowerup(typeof(RadarPowerup));
+                }
+            }
+            else if (pressedThisFrame(Keys.B))
+            {
+                if (GetPowerup("Bomb") is BombTimed)
+                {
+                    RemovePowerup("Bomb");
+                    AddPowerup(typeof(BombSet));
+                }
+                else
+                {
+                    if (HasPowerup("Bomb"))
+                        RemovePowerup("Bomb");
+                    AddPowerup(typeof(BombTimed));
+                }
+            }
+            else if (pressedThisFrame(Keys.V))
+            {
+                if (playerIndex == 0)
+                {
+                    if (GetPowerup("Chains") is FireChains)
+                    {
+                        RemovePowerup("Chains");
+                    }
+                    else
+                    {
+                        AddPowerup(typeof(FireChains));
+                    }
+                }
+            }
+            else if (pressedThisFrame(Keys.OemOpenBrackets))
+            {
+                RetroGame.AddSand();
+                RetroGame.AddScore(10000);
+                RetroGame.AddBomb();
+                for (int i = 0; i < 10; i++)
+                    RetroGame.AddGem();
+            }
+            else if (pressedThisFrame(Keys.OemCloseBrackets))
+            {
+                health -= INITIAL_HEALTH * 0.1f;
+            }
+            else if (pressedThisFrame(Keys.H)) /*MUSICTEST*/
+                SoundManager.PlaySoundAsMusic("LowRumble");
+            else if (pressedThisFrame(Keys.N))
+                SoundManager.StopMusic();
+            else if (pressedThisFrame(Keys.J))
+                SoundManager.SetMusicReverse(true);
+            else if (pressedThisFrame(Keys.M))
+                SoundManager.SetMusicReverse(false);
+            else if (pressedThisFrame(Keys.K))
+                SoundManager.SetMusicPitch(-1f);
+            else if (pressedThisFrame(Keys.OemComma))
+                SoundManager.SetMusicPitch(1f);
+            else if (pressedThisFrame(Keys.OemPeriod))
+                SoundManager.SetMusicPitch(0f);
+        }
+
+        public IMemento GenerateMementoFromCurrentFrame()
+        {
+            return new HeroMemento(this);
+        }
+
+        private class HeroMemento : IMemento
+        {
+            public Object Target { get; set; }
+            public Vector2 position;
+            float health;
+            Direction direction;
+            public float rotation;
+            bool teleportedThisFrame;
+            bool alive;
+
+            public HeroMemento(Hero target)
+            {
+                Target = target;
+                position = target.position;
+                health = target.health;
+                direction = target.direction;
+                rotation = target.rotation;
+                teleportedThisFrame = target.teleportedThisFrame;
+                alive = target.Alive;
+            }
+
+            public void Apply(float interpolationFactor, bool isNewFrame, IMemento nextFrame)
+            {
+                Hero target = (Hero)Target;
+                if (nextFrame != null)
+                {
+                    float thisInterp = 1 - interpolationFactor;
+                    float nextInterp = interpolationFactor;
+                    HeroMemento next = (HeroMemento)nextFrame;
+                    if (teleportedThisFrame)
+                        target.position = position;
+                    else
+                        target.position = position * thisInterp + next.position * nextInterp;
+                }
+                else
+                {
+                    target.position = position;
+                }
+                if (alive)
+                {
+                    if (!target.Alive)
+                        target.revive();
+                    target.health = health;
+                }
+                target.direction = direction;
+                target.rotation = rotation;
             }
         }
     }

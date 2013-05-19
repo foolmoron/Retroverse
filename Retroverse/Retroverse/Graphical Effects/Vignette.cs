@@ -19,8 +19,8 @@ namespace Retroverse
 
         public static void Load()
         {
-            int w = (int)Game1.screenSize.X;
-            int h = (int)Game1.screenSize.Y - Game1.hudSize;
+            int w = (int)RetroGame.screenSize.X;
+            int h = (int)RetroGame.screenSize.Y - HUD.hudHeight;
             data = new Color[w * h];
             Vector2 center = new Vector2(w / 2, h / 2);
             float maxdistw = Vector2.DistanceSquared(center, new Vector2(0, center.Y));
@@ -51,18 +51,18 @@ namespace Retroverse
         public static void Draw(SpriteBatch spriteBatch, Color c, float intensity)
         {
             intensity = MathHelper.Clamp(intensity, 0, 1);
-            int w = (int)Game1.screenSize.X;
-            int h = (int)Game1.screenSize.Y - Game1.hudSize;
+            int w = (int)RetroGame.screenSize.X;
+            int h = (int)RetroGame.screenSize.Y - HUD.hudHeight;
             Point p = new Point(w, h);
             if (prevSize != p)
                 Load();
             if (tex == null)
             {
-                tex = new Texture2D(spriteBatch.GraphicsDevice, (int)Game1.screenSize.X, (int)Game1.screenSize.Y - Game1.hudSize, false, SurfaceFormat.Color);
+                tex = new Texture2D(spriteBatch.GraphicsDevice, (int)RetroGame.screenSize.X, (int)RetroGame.screenSize.Y - HUD.hudHeight, false, SurfaceFormat.Color);
                 tex.SetData(data);
             }
 
-            spriteBatch.Draw(tex, new Vector2(0, Game1.hudSize), null, c * intensity, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
+            spriteBatch.Draw(tex, new Vector2(0, HUD.hudHeight), null, c * intensity, 0f, Vector2.Zero, 1f, SpriteEffects.None, 0.9f);
         }
     }
 }

@@ -5,239 +5,292 @@ using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
+using Particles;
+
 namespace Retroverse
 {
     public static class RiotGuardWall
     {
-        public static readonly float SCALE_RIOT_GUARD = 0.6f;
+        public const float SCALE_RIOT_GUARD = 0.6f;
         public static string RIOTGUARD_TEXTURE_NAME = "riotguard1";
         public static Texture2D riotGuardTexture;
 
-        private static readonly List<RiotGuard> guards = new List<RiotGuard>();
-        public static readonly float INITIAL_WALL_POSITION = LevelManager.STARTING_LEVEL.X * Level.TEX_SIZE * 0.5f;
+        public const float DRILLING_PARTICLE_BASE_SIZE = 0.2f;
+        public const float DRILLING_PARTICLE_GROWTH = 0.75f;
+        public static LineEmitter drillingEmitter;
+
+        private enum RiotGuardMode { Waiting, Drilling, Moving }
+        private static RiotGuardMode mode;
+        private static RiotGuardOffset[] guardOffsets;
+        public const int GUARD_OFFSET_COUNT = 30;
         private static Vector2 wallPos;
         public static float wallPosition { get { return wallPos.X; } set { wallPos.X = value; } }
+        public const int WALL_WIDTH = 30;
+        public static int levelX { get { return (int)((wallPos.X ) / Level.TEX_SIZE); } }
+        public static int farthestLevelX;
+        public const float MOVING_SPEED = 100f;
+        public static bool IsWaiting { get { return mode == RiotGuardMode.Waiting; } }
 
-        public const int WALL_SPEED_COUNT = 13;
-        public static readonly float[] WALL_SPEEDS = new float[WALL_SPEED_COUNT]                  { 20, 45, 80, 100, 130, 170, 270, 400, 600, 800, 1200, 1600, 3000 };
-        public static readonly float[] WALL_SPEED_UPGRADE_DISTANCES = new float[WALL_SPEED_COUNT] { 0,  7,  13, 17,  20,  23,  26,  28,  30,  31,  32,  33,  34}; //horizontal levels
-        public static readonly float wallSpeedUpgradeTime = 80f; //seconds
-        private static int wallSpeedIndex = 0;
-        public static float wallSpeed = WALL_SPEEDS[0];
-        public static float wallTime = 0;
-        public static readonly float AUTO_GAMEOVER_DISTANCE = 40f;
+        public static readonly Color ANGRY_COLOR = Color.Red;
 
-        public static bool reversing = false;
-        public static float timeToReverse;
-        public static float reverseTime = 0;
-        public static readonly float MAX_REVERSE_TIME = 5;
+        public const int LEVELS_TO_MAX_SPEED = 20;
+        public const float MAX_TIME_TO_DRILL = 150f;
+        public const float MIN_TIME_TO_DRILL = 30f;
+        public static float timeToDrill;
+        public static float drillingTime;
 
-        public static readonly int NUMBER_OF_GUARDS = 200;
-        public static readonly int HORIZONTAL_POSITION_VARIATION = 30;
-        public static readonly int VERTICAL_POSITION_VARIATION = 7;
+        public const float AUTO_GAMEOVER_DISTANCE = 40f;
+        public static int oldHeroLevelX = LevelManager.STARTING_LEVEL.X;
 
-        public static readonly int GUARD_HEIGHT_OFFSET_MIN = (int) (0.9f * -(NUMBER_OF_GUARDS / 2) * VERTICAL_POSITION_VARIATION);
-        public static readonly int GUARD_HEIGHT_OFFSET_MAX = (int) (0.9f * (NUMBER_OF_GUARDS / 2 - 1) * VERTICAL_POSITION_VARIATION);
+        public static Rectangle[] heroCoverageArea;
+        public static Rectangle guardCoverageArea;
 
-        public static void Initialize(int checkpoint)
+        public const int HORIZONTAL_POSITION_VARIATION = 10;
+        public const int VERTICAL_POSITION_VARIATION = 15;
+        public const int GUARD_HEIGHT_OFFSET_MIN = -550;
+        public const int GUARD_HEIGHT_OFFSET_MAX = 550;
+
+        public static void Initialize(SaveGame saveGame = null)
         {
             riotGuardTexture = TextureManager.Get(RIOTGUARD_TEXTURE_NAME);
-            wallPos = new Vector2(INITIAL_WALL_POSITION, 0);
-            int heroY = (int)Hero.instance.position.Y;
-            wallSpeedIndex = 0;
-            wallSpeed = WALL_SPEEDS[0];
-            wallTime = 0;
-            guards.Clear();
-            for (int i = -NUMBER_OF_GUARDS / 2; i < NUMBER_OF_GUARDS / 2; i++)
-                guards.Add(new RiotGuard(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + i * VERTICAL_POSITION_VARIATION)));
-        }
+            drillingEmitter = LineEmitter.getPrebuiltEmitter(PrebuiltLineEmitter.RiotGuardWallDrillSparks);
 
-        public static int getWallSpeedCount()
-        {
-            return 7;
-        }
+            farthestLevelX = (saveGame != null) ? saveGame.levelX : LevelManager.STARTING_LEVEL.X;
+            wallPos = new Vector2((farthestLevelX - 0.5f) * Level.TEX_SIZE, 0);
+            if(saveGame != null) farthestLevelX++; //automatically chase after reloading
+            int heroY = (int)RetroGame.getHeroes()[0].position.Y;
+            mode = (saveGame != null) ? RiotGuardMode.Moving : RiotGuardMode.Waiting;
+            drillingTime = 0;
 
-        public static int getCurrentWallSpeedIndex()
-        {
-            switch (wallSpeedIndex)
+            heroCoverageArea = new Rectangle[RetroGame.NUM_PLAYERS];
+
+            guardOffsets = new RiotGuardOffset[GUARD_OFFSET_COUNT];
+            for(int i = 0; i < GUARD_OFFSET_COUNT; i++)
             {
-                case 0:
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                    return wallSpeedIndex;
-                case 6:
-                case 7:
-                case 8:
-                case 9:
-                case 10:
-                case 11:
-                case 12:
-                    return 6;
-                default:
-                    return 0;
+                guardOffsets[i] = new RiotGuardOffset();
             }
         }
 
-        public static void UpdateArena(GameTime gameTime)
-        {
-            float seconds = gameTime.getSeconds();
-            resetGuardsIfNecessary(gameTime);
-        }
-
-        public static void UpdateEscape(GameTime gameTime)
+        public static void Update(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
 
-            if (!reversing)
+            drillingEmitter.active = false;
+            int oldLevelX = levelX;
+            switch (mode)
             {
-                wallTime += seconds;
-                if (wallSpeedIndex < WALL_SPEED_COUNT - 1)
-                {
-                    if (Hero.instance.levelX >= WALL_SPEED_UPGRADE_DISTANCES[wallSpeedIndex + 1])
+                case RiotGuardMode.Waiting:
+                    break;
+                case RiotGuardMode.Drilling:
+                    drillingTime += seconds;
+                    if (drillingTime >= timeToDrill)
+                        farthestLevelX++;
+
+                    int heroLevelX = 0;
+                    foreach (Hero hero in RetroGame.getHeroes())
                     {
-                        wallSpeed = WALL_SPEEDS[++wallSpeedIndex];
-                        Game1.pulseVignette();
+                        if (hero.levelX > oldHeroLevelX)
+                            heroLevelX = hero.levelX;
                     }
-                }
-                //if (wallTime >= wallSpeedUpgradeTime)
-                //{
-                //    if (wallSpeedIndex < WALL_SPEEDS.Length)
-                //    {
-                //        wallSpeed = WALL_SPEEDS[++wallSpeedIndex];
-                //        Game1.pulseVignette();
-                //    }
-                //    wallTime = 0;
-                //}
-            }
-            else
-            {
-                reverseTime += seconds;
-                if (reverseTime >= MAX_REVERSE_TIME)
-                {
-                    setReverse(false);
-                }
-            }
-            wallPosition += wallSpeed * seconds;
+                    if(heroLevelX > farthestLevelX)
+                        farthestLevelX = heroLevelX;
 
+                    if (farthestLevelX > levelX)
+                    {
+                        StartMoving();
+                    }
+
+                    float drillingRatio = drillingTime / timeToDrill;
+                    drillingEmitter.position = new Vector2(wallPosition + Level.TILE_SIZE / 2, guardCoverageArea.Top);
+                    drillingEmitter.positionB = new Vector2(wallPosition + Level.TILE_SIZE / 2, guardCoverageArea.Bottom);
+                    drillingEmitter.startSize = DRILLING_PARTICLE_GROWTH * drillingRatio + DRILLING_PARTICLE_BASE_SIZE;
+                    drillingEmitter.active = true;
+                    break;
+                case RiotGuardMode.Moving:
+                    wallPosition += MOVING_SPEED * seconds;
+                    break;
+            }
+            drillingEmitter.Update(gameTime);
             updateGuards(gameTime);
 
-            if (wallPosition - Hero.instance.position.X >= AUTO_GAMEOVER_DISTANCE)
-            {
-                Game1.gameOver();
-            }
+            if(levelX > oldLevelX)
+                mode = RiotGuardMode.Drilling;
+            float levelInterp = 1 - (float)levelX / LEVELS_TO_MAX_SPEED;
+            timeToDrill = levelInterp * (MAX_TIME_TO_DRILL - MIN_TIME_TO_DRILL) + MIN_TIME_TO_DRILL;
 
-            if (wallPosition >= Hero.instance.getLeft().X)
-                Hero.instance.collideWithRiotGuardWall();
+            foreach (Hero hero in RetroGame.getHeroes())
+            {
+                if(!hero.Alive)
+                    continue;
+
+                if (wallPosition - hero.position.X >= AUTO_GAMEOVER_DISTANCE)
+                {
+                    RetroGame.GameOver();
+                }
+                if (wallPosition >= hero.getLeft().X)
+                    hero.collideWithRiotGuardWall();
+            }
         }
 
-        public static void setReverse(bool reverse)
+        public static void StartMoving()
         {
-            reversing = reverse;
-            if (reverse && wallSpeed > 0)
-                wallSpeed *= -1;
-            else if (!reverse && wallSpeed < 0)
-                wallSpeed *= -1;
+            if (mode != RiotGuardMode.Moving)
+                SoundManager.PlaySoundOnce("RiotGuardAlarm", playInReverseDuringReverse: true);
+            drillingTime = 0;
+            mode = RiotGuardMode.Moving;
         }
 
         public static void UpdateRetro(GameTime gameTime)
         {
-            if (History.lastState == GameState.Escape)
-            {
-                wallPosition += wallSpeed * gameTime.getSeconds();
+            if (mode != RiotGuardMode.Waiting)
                 updateGuards(gameTime);
-            }
         }
 
-        public static void updateGuards(GameTime gameTime)
+        private static void updateGuards(GameTime gameTime)
         {
-            float heroY = Hero.instance.position.Y;
-            foreach (RiotGuard g in guards)
+            guardCoverageArea = Rectangle.Empty;
+            for(int i = 0; i < RetroGame.NUM_PLAYERS; i++)
             {
-                g.Update(gameTime);
-                if (g.position.Y >= (heroY + GUARD_HEIGHT_OFFSET_MAX))
-                    g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MIN));
-                else if (g.position.Y <= (heroY + GUARD_HEIGHT_OFFSET_MIN))
-                    g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MAX));
+                Hero hero = RetroGame.getHeroes()[i];
+                heroCoverageArea[i].X = (int)(wallPosition - AUTO_GAMEOVER_DISTANCE);
+                heroCoverageArea[i].Y = (int)(hero.position.Y + GUARD_HEIGHT_OFFSET_MIN);
+                heroCoverageArea[i].Width = (int)AUTO_GAMEOVER_DISTANCE;
+                heroCoverageArea[i].Height = GUARD_HEIGHT_OFFSET_MAX - GUARD_HEIGHT_OFFSET_MIN;
+                if(guardCoverageArea == Rectangle.Empty)
+                    guardCoverageArea = heroCoverageArea[i];
+                else
+                    guardCoverageArea = Rectangle.Union(guardCoverageArea, heroCoverageArea[i]);
             }
-        }
 
-        public static void resetGuardsIfNecessary(GameTime gameTime)
-        {
-            float heroY = Hero.instance.position.Y;
-            foreach (RiotGuard g in guards)
+            foreach(RiotGuardOffset offset in guardOffsets)
             {
-                if (g.position.Y >= (heroY + GUARD_HEIGHT_OFFSET_MAX))
-                    g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MIN));
-                else if (g.position.Y <= (heroY + GUARD_HEIGHT_OFFSET_MIN))
-                    g.reset(new Vector2(Game1.rand.Next(HORIZONTAL_POSITION_VARIATION) - HORIZONTAL_POSITION_VARIATION / 3, heroY + GUARD_HEIGHT_OFFSET_MAX));
+                offset.Update(gameTime);
             }
         }
 
         public static void Draw(SpriteBatch spriteBatch)
         {
-            foreach (RiotGuard g in guards)
-                g.Draw(spriteBatch);
+            Color color = Color.DimGray;
+            switch (mode)
+            {
+                case RiotGuardMode.Waiting:
+                    break;
+                case RiotGuardMode.Drilling:
+                    float interp = drillingTime / timeToDrill;
+                    color = Color.Lerp(Color.White, ANGRY_COLOR, interp);
+                    break;
+                case RiotGuardMode.Moving:
+                    color = ANGRY_COLOR;
+                    break;
+            }
+            int baseY = guardCoverageArea.Top - (guardCoverageArea.Top % VERTICAL_POSITION_VARIATION);
+            for (int xIndex = 0; xIndex < WALL_WIDTH / HORIZONTAL_POSITION_VARIATION; xIndex++)
+            {
+                int z = 0;
+                for (int y = baseY; y < guardCoverageArea.Bottom; y += VERTICAL_POSITION_VARIATION)
+                {
+                    int offsetIndex = ((xIndex + 1) * (y / VERTICAL_POSITION_VARIATION + 1)) % GUARD_OFFSET_COUNT;
+                    int x = guardCoverageArea.Left + (xIndex * HORIZONTAL_POSITION_VARIATION) - RiotGuardOffset.RANDOM_MOVEMENT + Level.TILE_SIZE / 2;
+                    spriteBatch.Draw(riotGuardTexture, new Vector2(x, y) + guardOffsets[offsetIndex].offset, null, color, (float)Math.PI * 3 / 2, new Vector2(riotGuardTexture.Width / 2.0f, riotGuardTexture.Height / 2.0f), SCALE_RIOT_GUARD, SpriteEffects.None, 0);
+                }
+            }
+            drillingEmitter.Draw(spriteBatch);
         }
 
         public static void DrawDebug(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle((int)wallPosition - 5, (int)Hero.instance.position.Y - 300, 10, 600), Color.HotPink);
+            spriteBatch.Draw(RetroGame.PIXEL, new Rectangle((int)wallPosition - 5, (int)RetroGame.getHeroes()[0].position.Y - 300, 10, 600), Color.Lerp(Color.White, ANGRY_COLOR, drillingTime/timeToDrill).withAlpha(150));
+//            spriteBatch.Draw(RetroGame.PIXEL, bounds[0], Color.Red.withAlpha(100));
+//            spriteBatch.Draw(RetroGame.PIXEL, bounds[1], Color.Green.withAlpha(100));
+//            spriteBatch.Draw(RetroGame.PIXEL, Rectangle.Union(bounds[0], bounds[1]), Color.Purple.withAlpha(100));
         }
 
-        private class RiotGuard
+        public static IMemento GenerateMementoFromCurrentFrame()
         {
-            public static readonly float MOVE_SPEED = 50;
-            public static readonly float RANDOM_MOVEMENT = 30;
+            return new RiotGuardWallMemento();
+        }
 
-            public Vector2 basePosition;
-            public Vector2 startPosition;
-            public Vector2 endPosition;
-            public Vector2 position;
+        private class RiotGuardWallMemento : IMemento
+        {
+            //add necessary fields to save information here
+            public Object Target { get; set; }
+            Vector2 wallPos;
+            float drillingTime;
+            float timeToDrill;
+            RiotGuardMode mode;
+            IMemento drillingEmitterMemento;
+
+            public RiotGuardWallMemento()
+            {
+                wallPos = RiotGuardWall.wallPos;
+                drillingTime = RiotGuardWall.drillingTime;
+                timeToDrill = RiotGuardWall.timeToDrill;
+                mode = RiotGuardWall.mode;
+                drillingEmitterMemento = RiotGuardWall.drillingEmitter.GenerateMementoFromCurrentFrame();
+            }
+			
+            public void Apply(float interpolationFactor, bool isNewFrame, IMemento nextFrame)
+            { 			
+                if (nextFrame != null) //apply values with interpolation only if the next frame exists
+                {
+					float thisInterp = 1 - interpolationFactor;
+					float nextInterp = interpolationFactor;	
+					//cast the given memento to this specific type, don't worry about class cast exceptions
+                    RiotGuardWallMemento next = (RiotGuardWallMemento)nextFrame;
+                    RiotGuardWall.wallPos = wallPos * thisInterp + next.wallPos * nextInterp;
+                    RiotGuardWall.drillingTime = drillingTime * thisInterp + next.drillingTime * nextInterp;
+                    drillingEmitterMemento.Apply(interpolationFactor, isNewFrame, next.drillingEmitterMemento);
+                }
+                else
+                {
+                    //do non-interpolative versions of the above applications here
+                    RiotGuardWall.wallPos = wallPos;
+                    RiotGuardWall.drillingTime = drillingTime;
+                    drillingEmitterMemento.Apply(interpolationFactor, isNewFrame, null);
+                }
+                //apply values that never need interpolation here
+                RiotGuardWall.timeToDrill = timeToDrill;
+                RiotGuardWall.mode = mode;
+            }
+        }
+
+        private class RiotGuardOffset
+        {
+            public const int MOVE_SPEED = 50;
+            public const int RANDOM_MOVEMENT = 30;
+
+            public Vector2 startOffset;
+            public Vector2 endOffset;
+            public Vector2 offset;
             public Vector2 unitDirection;
             public bool reachedEnd = true;
 
-            public RiotGuard(Vector2 basePos)
+            public RiotGuardOffset()
             {
-                basePosition = basePos;
-                position = basePos;
-            }
-
-            public void reset(Vector2 basePos)
-            {
-                basePosition = basePos;
-                position = basePos;
-                reachedEnd = true;
+                offset = Vector2.Zero;
             }
 
             public void Update(GameTime gameTime)
             {
                 float seconds = gameTime.getSeconds();
 
-                if (reachedEnd) // get new end position
+                if (reachedEnd) // get new end offset
                 {
-                    startPosition = position;
-                    double randomAngle = Game1.rand.NextDouble() * Math.PI * 2;
-                    float xMod = (float) Math.Cos(randomAngle);
-                    float yMod = (float) Math.Sin(randomAngle);
-                    endPosition = basePosition + new Vector2(xMod * RANDOM_MOVEMENT, yMod * RANDOM_MOVEMENT);
-                    unitDirection = Vector2.Normalize(endPosition - startPosition);
+                    startOffset = offset;
+                    double randomAngle = RetroGame.rand.NextDouble() * Math.PI * 2;
+                    float xMod = (float)Math.Cos(randomAngle);
+                    float yMod = (float)Math.Sin(randomAngle);
+                    endOffset = new Vector2(xMod * RANDOM_MOVEMENT, yMod * RANDOM_MOVEMENT);
+                    unitDirection = Vector2.Normalize(endOffset - startOffset);
                     reachedEnd = false;
                 }
 
-                position += unitDirection * MOVE_SPEED * seconds;
-                Vector2 startToEnd = endPosition - startPosition;
-                Vector2 posToEnd = endPosition - position;
+                offset += unitDirection * MOVE_SPEED * seconds;
+                Vector2 startToEnd = endOffset - startOffset;
+                Vector2 posToEnd = endOffset - offset;
                 Vector2 distanceToEnd = posToEnd / startToEnd;
                 if (distanceToEnd.X <= 0 || distanceToEnd.Y <= 0)
                     reachedEnd = true;
-            }
-
-            public void Draw(SpriteBatch spriteBatch)
-            {
-                spriteBatch.Draw(riotGuardTexture, wallPos + position, null, Color.White, (float)Math.PI * 3 / 2, new Vector2(riotGuardTexture.Width / 2, riotGuardTexture.Height / 2), SCALE_RIOT_GUARD, SpriteEffects.None, 0);
             }
         }
     }

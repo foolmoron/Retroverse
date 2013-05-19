@@ -14,6 +14,7 @@ namespace Retroverse
         public Sand(int x, int y, int levelX, int levelY, int tileX, int tileY)
             : base(x, y, levelX, levelY, tileX, tileY)
         {
+            CollectedSound = "CollectSand";
             setTexture("sandicon");
             addsToProgress = true;
             scale = 0.5f;
@@ -22,13 +23,20 @@ namespace Retroverse
             emitter.endColor = new Color(SAND_COLOR.R, SAND_COLOR.G, SAND_COLOR.B, 0);
         }
 
+        public override bool collectedBy(Entity e)
+        {
+            bool baseCollectedBy = base.collectedBy(e);
+            if (baseCollectedBy)
+            {
+                RetroGame.AddSand();
+                ((Hero)e).CollectedSand++;
+            }
+            return baseCollectedBy;
+        }
+
         public override void Update(Microsoft.Xna.Framework.GameTime gameTime)
         {
             base.Update(gameTime);
-            if (collectedThisFrame)
-            {
-                Game1.addSand();
-            }
         }
     }
 }

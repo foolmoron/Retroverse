@@ -56,8 +56,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Levels\intro.png">
-      <Name>intro</Name>
+    <Compile Include="Levels\introManyEnemies.png">
+      <Name>introManyEnemies</Name>
       <Importer>TextureImporter</Importer>
       <Processor>LevelProcessor</Processor>
     </Compile>
@@ -100,10 +100,236 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Audio\Waves\Aragonaise.wav">
+    <Content Include="Audio\Waves\Aragonaise.wav">
       <Name>Aragonaise</Name>
       <Importer>WavImporter</Importer>
-      <Processor>SongProcessor</Processor>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Textures\random.png">
+      <Name>random</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\flame.png">
+      <Name>flame</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\bomb.png">
+      <Name>bomb</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\flamethrower.png">
+      <Name>flamethrower</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\blinkicon.png">
+      <Name>blinkicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\arrow.png">
+      <Name>arrow</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\shield.png">
+      <Name>shield</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\shieldicon.png">
+      <Name>shieldicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\pausescreen1.png">
+      <Name>pausescreen1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\adrenalinepickup.png">
+      <Name>adrenalinepickup</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\adrenalinepermanent.png">
+      <Name>adrenalinepermanent</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\damageboost.png">
+      <Name>damageboost</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\fastforward.png">
+      <Name>fastforward</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\firechain.png">
+      <Name>firechain</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\radarup.png">
+      <Name>radarup</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\bombtimed.png">
+      <Name>bombtimed</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\bombset.png">
+      <Name>bombset</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\healthborder.png">
+      <Name>healthborder</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\healthfilling.png">
+      <Name>healthfilling</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\menupaper.png">
+      <Name>menupaper</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\menuphoto.png">
+      <Name>menuphoto</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\menutab.png">
+      <Name>menutab</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\pausescreen.png">
+      <Name>pausescreen</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\riotguardwallbar.png">
+      <Name>riotguardwallbar</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Textures\wallhoriz.png">
+      <Name>wallhoriz</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Textures\wallvert.png">
+      <Name>wallvert</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\healthicon.png">
+      <Name>healthicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\staticstorealpha.png">
+      <Name>staticstorealpha</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\staticplayerprisoneralpha.png">
+      <Name>staticplayerprisoneralpha</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\warptopartner.png">
+      <Name>warptopartner</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\playbackff1.png">
+      <Name>playbackff1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\playbackpause1.png">
+      <Name>playbackpause1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\playbackplay1.png">
+      <Name>playbackplay1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\playbackrr1.png">
+      <Name>playbackrr1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\playbackstop1.png">
+      <Name>playbackstop1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\normaldrill2.png">
+      <Name>normaldrill2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\staticlevelborderhorizalpha.png">
+      <Name>staticlevelborderhorizalpha</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\staticlevelbordervertalpha.png">
+      <Name>staticlevelbordervertalpha</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\retroversetitle5.png">
+      <Name>retroversetitle5</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\storeicon.png">
+      <Name>storeicon</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\storeiconborder.png">
+      <Name>storeiconborder</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\playerrevive.png">
+      <Name>playerrevive</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\soundloud.png">
+      <Name>soundloud</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\soundmute.png">
+      <Name>soundmute</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Sprites\hudcellborder.png">
+      <Name>hudcellborder</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -135,13 +361,6 @@
   <ItemGroup>
     <Compile Include="Effects\RetroPort.fx">
       <Name>RetroPort</Name>
-      <Importer>EffectImporter</Importer>
-      <Processor>EffectProcessor</Processor>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Effects\Test.fx">
-      <Name>Test</Name>
       <Importer>EffectImporter</Importer>
       <Processor>EffectProcessor</Processor>
     </Compile>
@@ -230,6 +449,509 @@
       <Name>pixel98</Name>
       <Importer>TextureImporter</Importer>
       <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Content Include="Audio\Waves\BasicDrillLoop.wav">
+      <Name>BasicDrillLoop</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\Blink.wav">
+      <Name>Blink</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\BombExplosion.wav">
+      <Name>BombExplosion</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\BombTick.wav">
+      <Name>BombTick</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\BulletStrong.wav">
+      <Name>BulletStrong</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\BulletLight.wav">
+      <Name>BulletLight</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\BulletTiny.wav">
+      <Name>BulletTiny</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\ButtonBack.wav">
+      <Name>ButtonBack</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\ButtonFailure.wav">
+      <Name>ButtonFailure</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\ButtonForward.wav">
+      <Name>ButtonForward</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\CollectGem.wav">
+      <Name>CollectGem</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\CollectPowerup.wav">
+      <Name>CollectPowerup</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>SoundEffectProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\CollectSand.wav">
+      <Name>CollectSand</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\FastDrillLoop.wav">
+      <Name>FastDrillLoop</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\Flamethrower.wav">
+      <Name>Flamethrower</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\GameOverTheme.wav">
+      <Name>GameOverTheme</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\PlayerDead.wav">
+      <Name>PlayerDead</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>SoundEffectProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\PlayerHit.wav">
+      <Name>PlayerHit</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\EnemyDeath.wav">
+      <Name>EnemyDeath</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\EnemyHit.wav">
+      <Name>EnemyHit</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\LowRumble.wav">
+      <Name>LowRumble</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\PrisonerFalling.wav">
+      <Name>PrisonerFalling</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\PrisonerRising.wav">
+      <Name>PrisonerRising</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\MainTheme.wav">
+      <Name>MainTheme</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\RescueTeleport.wav">
+      <Name>RescueTeleport</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>SoundEffectProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\RiotGuardAlarm.wav">
+      <Name>RiotGuardAlarm</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\RocketBurst.wav">
+      <Name>RocketBurst</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\StoreChargedJingle.wav">
+      <Name>StoreChargedJingle</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\StoreTheme.wav">
+      <Name>StoreTheme</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\Revive.wav">
+      <Name>Revive</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\SingleDrill.wav">
+      <Name>SingleDrill</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Audio\Waves\test.wav">
+      <Name>test</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Levels\rachel5.png">
+      <Name>rachel5</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas1.png">
+      <Name>thomas1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Fonts\xbox32.png">
+      <Name>xbox32</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>FontTextureProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas2.png">
+      <Name>thomas2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas3.png">
+      <Name>thomas3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas4.png">
+      <Name>thomas4</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas5.png">
+      <Name>thomas5</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas6.png">
+      <Name>thomas6</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas7.png">
+      <Name>thomas7</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas8.png">
+      <Name>thomas8</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin3.png">
+      <Name>martin3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin4.png">
+      <Name>martin4</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin5.png">
+      <Name>martin5</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin6.png">
+      <Name>martin6</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin7.png">
+      <Name>martin7</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas9.png">
+      <Name>thomas9</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas10.png">
+      <Name>thomas10</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas11.png">
+      <Name>thomas11</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas12.png">
+      <Name>thomas12</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas13.png">
+      <Name>thomas13</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas14.png">
+      <Name>thomas14</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\store.png">
+      <Name>store</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin10.png">
+      <Name>martin10</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin11.png">
+      <Name>martin11</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin12.png">
+      <Name>martin12</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin13.png">
+      <Name>martin13</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin14.png">
+      <Name>martin14</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin15.png">
+      <Name>martin15</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin8.png">
+      <Name>martin8</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin9.png">
+      <Name>martin9</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\introOneEnemy.png">
+      <Name>introOneEnemy</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\introCoop.png">
+      <Name>introCoop</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\introSingle.png">
+      <Name>introSingle</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas15.png">
+      <Name>thomas15</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas16.png">
+      <Name>thomas16</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas17.png">
+      <Name>thomas17</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas18.png">
+      <Name>thomas18</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas19.png">
+      <Name>thomas19</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas20.png">
+      <Name>thomas20</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas21.png">
+      <Name>thomas21</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john2.png">
+      <Name>john2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john3.png">
+      <Name>john3</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john4.png">
+      <Name>john4</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john5.png">
+      <Name>john5</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel6.png">
+      <Name>rachel6</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel7.png">
+      <Name>rachel7</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel8.png">
+      <Name>rachel8</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel9.png">
+      <Name>rachel9</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\rachel10.png">
+      <Name>rachel10</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas22.png">
+      <Name>thomas22</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\thomas23.png">
+      <Name>thomas23</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john6.png">
+      <Name>john6</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john7.png">
+      <Name>john7</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john8.png">
+      <Name>john8</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\john9.png">
+      <Name>john9</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Content Include="Audio\Waves\TripleDrillLoop.wav">
+      <Name>TripleDrillLoop</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>PassThroughProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Levels\martin16.png">
+      <Name>martin16</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin17.png">
+      <Name>martin17</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin18.png">
+      <Name>martin18</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin19.png">
+      <Name>martin19</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin20.png">
+      <Name>martin20</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\martin21.png">
+      <Name>martin21</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
     </Compile>
     <Content Include="nameprefixes.txt">
       <Name>nameprefixes</Name>
@@ -394,11 +1116,6 @@
       <Importer>TextureImporter</Importer>
       <Processor>TextureProcessor</Processor>
     </Compile>
-    <Compile Include="Sprites\player2.png">
-      <Name>player2</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>TextureProcessor</Processor>
-    </Compile>
     <Compile Include="Sprites\radaricon1.png">
       <Name>radaricon1</Name>
       <Importer>TextureImporter</Importer>
@@ -426,6 +1143,56 @@
       <Name>exclamation</Name>
       <Importer>FontDescriptionImporter</Importer>
       <Processor>FontDescriptionProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\RewindRandomStatic.fx">
+      <Name>RewindRandomStatic</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\TestX.fx">
+      <Name>TestX</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\RewindTexture.fx">
+      <Name>RewindTexture</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\Test.fx">
+      <Name>Test</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\RewindDistortion.fx">
+      <Name>RewindDistortion</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
+      <ProcessorParameters_DebugMode>Debug</ProcessorParameters_DebugMode>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\StaticWithAlphaTexture.fx">
+      <Name>StaticWithAlphaTexture</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Effects\StoreIconShading.fx">
+      <Name>StoreIconShading</Name>
+      <Importer>EffectImporter</Importer>
+      <Processor>EffectProcessor</Processor>
     </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\XNA Game Studio\$(XnaFrameworkVersion)\Microsoft.Xna.GameStudio.ContentPipeline.targets" />

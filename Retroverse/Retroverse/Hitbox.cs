@@ -41,6 +41,12 @@ namespace Retroverse
             originalRectangle = rectangle = new Rectangle(0, 0, width, height);
         }
 
+        public override string ToString()
+        {
+            return rectangle.ToString();
+        }
+
+
         public bool intersects(Hitbox otherHitbox)
         {
             if (!active || !otherHitbox.active)
@@ -62,6 +68,54 @@ namespace Retroverse
             if (!active)
                 return false;
             return rectangle.Contains(point);
+        }
+
+        public bool intersectsLine(Vector2 point1, Vector2 point2, float thickness)
+        {
+            Vector2 a, b;
+            if (point1.Y <= point2.Y)
+            {
+                a = point1;
+                b = point2;
+            }
+            else
+            {
+                a = point2;
+                b = point1;
+            }
+            float topMost = a.Y - thickness / 2;
+            float bottomMost = b.Y + thickness / 2;
+            float rightMost = Math.Max(a.X, b.X) + thickness / 2;
+            float leftMost = Math.Min(a.X, b.X) - thickness / 2;
+
+            float slope = (a.Y - b.Y) / (a.X - b.X);
+            float intercept = a.Y - (slope * a.X);
+
+            if (float.IsInfinity(slope))
+            {
+                float xLine = a.X;
+                if (xLine >= rectangle.Left && xLine <= rectangle.Right &&
+                    ((rectangle.Bottom >= topMost && rectangle.Bottom <= bottomMost) || (rectangle.Top >= topMost && rectangle.Top <= bottomMost)
+                     || (rectangle.Bottom >= topMost && rectangle.Top <= bottomMost)))
+                    return true;
+                else
+                    return false;
+            }
+
+            float xTop = (rectangle.Top - intercept) / slope;
+            if (xTop >= rectangle.Left && xTop <= rectangle.Right && xTop >= leftMost && xTop <= rightMost && rectangle.Top <= bottomMost && rectangle.Top >= topMost)
+                return true;
+            float xBottom = (rectangle.Bottom - intercept) / slope;
+            if (xBottom >= rectangle.Left && xBottom <= rectangle.Right && xBottom >= leftMost && xBottom <= rightMost && rectangle.Bottom <= bottomMost && rectangle.Bottom >= topMost)
+                return true;
+            float yRight = slope * rectangle.Right + intercept;
+            if (yRight >= rectangle.Top && yRight <= rectangle.Bottom && yRight <= bottomMost && yRight >= topMost && rectangle.Right >= leftMost && rectangle.Right <= rightMost)
+                return true;
+            float yLeft = slope * rectangle.Left + intercept;
+            if (yLeft >= rectangle.Top && yLeft <= rectangle.Bottom && yLeft <= bottomMost && yLeft >= topMost && rectangle.Left >= leftMost && rectangle.Left <= rightMost)
+                return true;
+
+            return false;
         }
 
         public void Update(Entity owner)
@@ -105,10 +159,10 @@ namespace Retroverse
             if (!DRAW_HITBOXES)
                 return;
             int borderWidth = 2;
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle(left, top, borderWidth, height), Color.LimeGreen); // Left
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle(right, top, borderWidth, height), Color.LimeGreen); // Right
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle(left, top, width, borderWidth), Color.LimeGreen); // Top
-            spriteBatch.Draw(Game1.PIXEL, new Rectangle(left, bottom, width, borderWidth), Color.LimeGreen); // Bottom
+            spriteBatch.Draw(RetroGame.PIXEL, new Rectangle(left, top, borderWidth, height), Color.LimeGreen); // Left
+            spriteBatch.Draw(RetroGame.PIXEL, new Rectangle(right, top, borderWidth, height), Color.LimeGreen); // Right
+            spriteBatch.Draw(RetroGame.PIXEL, new Rectangle(left, top, width, borderWidth), Color.LimeGreen); // Top
+            spriteBatch.Draw(RetroGame.PIXEL, new Rectangle(left, bottom, width, borderWidth), Color.LimeGreen); // Bottom
         }
     }
 }

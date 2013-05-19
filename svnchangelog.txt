@@ -1,0 +1,83 @@
+325
+Disabled levels debug string in release mode
+324
+Updated version to 2.0a
+323
+Added custom game icon
+322
+321
+-Fixed revive pickup able to be bought in Solo
+-Fixed rachel5 and rachel3 colors
+-Made default highscores higher
+-Fixed highscores saving
+-Fixed powerups adding to hero and storing glitches
+-Retro powerups give 2 sand
+-Radar hidden in store
+-Loaded saves delete properly after restarting game
+320
+-Fixed flashing icon glitch
+-Fixed Riot Wall alarm sound playing incorrectly
+-Fixed Continue screen text overlapping
+319
+-Added SVN changelog file
+318
+-Added flashing icons when you collect a powerup
+-Added missing sound files
+317
+-Optimized a few things
+-Should be all done now... needs some playtesting to see if anything is broken
+316
+-Added credits
+315
+-Added prisoner setup at start of game
+314
+-Highscores done (they update and save while playing)
+313
+-Tweaked drill particle look
+-Added pause menu info
+-Split config/bindings save files
+-Restarting/loading a save won't give you new powerups in the store anymore
+312
+-Fixed inventory warning display glitches
+311
+-Added inventory warning messages
+310
+-Added highscores display
+309
+Fixed bindings load glitch
+-Added Drill powerup icon charge logic
+-Improved named prisoner ID generation
+-Added cell names to HUD
+"hid" the 1 pixel overlay wall texture glitch by making drilled walls lighter
+307
+-Speed/Adrenaline pickups reversible and polished
+306
+Fixed some levels
+Flamethrower particles instead of ugly sprite
+305
+Optimized level and AI memory management to reduce OOM crashes
+304
+Fixed continue menu bugs with deleting
+303
+-Added saved game manager menu
+-Fixed bugs with starting then quitting then starting again (caused errors when going from single to co-op, etc.)
+302
+-Player Name/ID on pause/gameover screens
+-Improved inventory fonts/colors
+-Improved random names
+301
+-Added a REALLY GOOD key binding system... seriously
+300
+-Finished Sound menu
+-Saves config (sound levels, screen size) across game loads
+299
+-Added left/right menu options and preliminary sound menu
+-Fixed store text scaling
+298
+Added preliminary options menu
+297
+-Added revive pickup icon in store
+-Fixed price of health/revive pickups not increasing in store
+-Re-enabled music
+296
+Sounds in reverse fully implemented
