@@ -61,11 +61,6 @@
       <Importer>TextureImporter</Importer>
       <Processor>LevelProcessor</Processor>
     </Compile>
-    <Compile Include="Levels\rachel1.png">
-      <Name>rachel1</Name>
-      <Importer>TextureImporter</Importer>
-      <Processor>LevelProcessor</Processor>
-    </Compile>
     <Compile Include="Levels\rachel2.png">
       <Name>rachel2</Name>
       <Importer>TextureImporter</Importer>
