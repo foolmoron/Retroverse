@@ -36,6 +36,13 @@ namespace Retroverse
 
         public readonly MenuOptions startOptions;
 
+        //WASD instructions
+        public bool enableDrawWASDInstructions = false;
+        public static readonly Vector2 WASD_NAVIGATE_POSITION = new Vector2(0.15f, 0.35f);
+        public static readonly Vector2 WASD_PLUS_POSITION = new Vector2(0.2575f, 0.345f);
+        public static readonly Vector2 WASD_SELECT_POSITION = new Vector2(0.2855f, 0.355f);
+        public static float WASD_SCALE = 0.5f;
+
         //setup
         public MenuOptions setupOptions;
         public static int currentSetupIndex;
@@ -101,6 +108,7 @@ namespace Retroverse
 
         public static int currentCreditsPage;
         public const int NUM_CREDITS_PAGES = 2;
+        #region Credits Lists
         public static readonly string[][] CREDITS_LINES = new string[][]
         {
             new string[]
@@ -129,8 +137,8 @@ namespace Retroverse
                 "Microsoft VS 2010",
                 "Microsoft XNA 4.0",
                 "JetBrains ReSharper",
-                "Visitor font (pixel)",
-                "Enigma",
+                "Victor's Pixel Font",
+                "Sergeant Koopa",
                 "KEYmode font",
                 "Flop Design",
                 "XNA Button Pack 3",
@@ -179,6 +187,7 @@ namespace Retroverse
                 true,
             },
         };
+        #endregion
 
         public StartScreen(Bindings activeBindings)
             : base(activeBindings)
@@ -599,6 +608,12 @@ namespace Retroverse
             {
                 case SettingsMode.None:
                 case SettingsMode.Menu:
+                    if (enableDrawWASDInstructions)
+                    {
+                        spriteBatchHUD.DrawString(RetroGame.FONT_HUD_KEYS, "WASD", WASD_NAVIGATE_POSITION * texSize, Color.Black, 0, Vector2.Zero, WASD_SCALE, SpriteEffects.None, 0);
+                        spriteBatchHUD.DrawString(RetroGame.FONT_PIXEL_LARGE, "+", WASD_PLUS_POSITION * texSize, Color.Black, 0, Vector2.Zero, WASD_SCALE, SpriteEffects.None, 0);
+                        spriteBatchHUD.DrawString(RetroGame.FONT_HUD_KEYS, "_", WASD_SELECT_POSITION * texSize, Color.Black, 0, Vector2.Zero, WASD_SCALE, SpriteEffects.None, 0);
+                    }
                     Highscores.Draw(Highscores.DrawMode.Both, spriteBatchHUD, HIGHSCORES_POS * texSize, HIGHSCORES_SCALE);
                     break;
                 case SettingsMode.Continue: 

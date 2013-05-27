@@ -119,8 +119,11 @@ namespace Retroverse
         public const int MAX_PLAYERS = 2;
         public static int NUM_PLAYERS = 1;
 
+        public static bool IsFirstTimePlaying { get; private set; }
+
         public RetroGame()
         {
+            IsFirstTimePlaying = false;
             graphics = new GraphicsDeviceManager(this);
             graphics.PreferMultiSampling = true;
             Content.RootDirectory = "Content";
@@ -310,6 +313,8 @@ namespace Retroverse
 
             //configuration file
             LoadConfig();
+            if (IsFirstTimePlaying)
+                ((StartScreen)TopScreen).enableDrawWASDInstructions = true;
             SaveConfig();
 
             Reset();
@@ -394,7 +399,10 @@ namespace Retroverse
             if (configAndBindings.config != null)
                 configAndBindings.config.apply();
             else
+            {
+                IsFirstTimePlaying = true;
                 ConfigSave.NewSave().apply();
+            }
             if (configAndBindings.bindings != null)
                 configAndBindings.bindings.apply();
             else
