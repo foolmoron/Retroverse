@@ -6,3 +6,5 @@ obj
 TestResults
 *.suo
 /Retroverse/Retroverse/*.cachefile
+
+/Retroverse.sln.DotSettings.user

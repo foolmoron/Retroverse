@@ -62,6 +62,12 @@ namespace Retroverse
         public bool Alive { get; private set; }
         public bool Fugitive { get { return Alive && RetroGame.HasDrilled; } }
 
+        //flashing
+        public float flashTime;
+        public Color flashColor;
+        public int flashCount;
+        public float individualFlashDuration;
+
         public int CollectedSand { get; set; }
         public int CollectedBombs { get; set; }
         public int CollectedGems { get; set; }
@@ -218,13 +224,12 @@ namespace Retroverse
             return Powerups.Keys.Contains(genericPowerupName);
         }
 
-        public static bool CanSwapPowerups(Powerup powerup1, Powerup powerup2)
+        public void flashWithColor(Color flashColor, int flashCount, float individualFlashDuration)
         {
-            if (powerup1.Active == powerup2.Active)
-            {
-
-            }
-            return false;
+            flashTime = 0;
+            this.flashColor = flashColor;
+            this.flashCount = flashCount;
+            this.individualFlashDuration = individualFlashDuration;
         }
 
         public void hitBy(Enemy e, float damage)
@@ -242,6 +247,7 @@ namespace Retroverse
                 }
             }
             SoundManager.PlaySoundOnce("PlayerHit", playInReverseDuringReverse: true);
+            flashWithColor(Color.Red.withAlpha(150), 2, 0.5f);
         }
 
         public bool attemptDie()
@@ -295,6 +301,7 @@ namespace Retroverse
             if(atPosition != null) 
                 position = atPosition.Value;
             updateCurrentLevelAndTile();
+            flashWithColor(Color.Cyan.withAlpha(150), 2, 0.75f);
         }
 
         public void collideWithRiotGuardWall()
@@ -517,6 +524,20 @@ namespace Retroverse
                         if (p.ableToBeCollected && hitbox.intersects(p.hitbox))
                             p.collectedBy(this);
                 }
+            }
+
+            //flashing
+            float flashTotalDuration = individualFlashDuration * flashCount;
+            if (flashTime < flashTotalDuration)
+            {
+                flashTime += seconds;
+                float flashInterp = (flashTime % individualFlashDuration) / individualFlashDuration;
+                float colorInterp =  1f - (Math.Abs(flashInterp - 0.5f) * 2); //map 0.0 - 0.5 to 0.0 - 1.0 and 0.5 - 1.0 to 1.0 - 0.0
+                maskingColor = Color.Lerp(color, flashColor, colorInterp);
+            }
+            else
+            {
+                maskingColor = color;
             }
 
             base.Update(gameTime);

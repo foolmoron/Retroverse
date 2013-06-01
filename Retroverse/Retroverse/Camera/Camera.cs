@@ -25,7 +25,7 @@ namespace Retroverse
             position = otherCamera.position;
         }
 
-        public abstract void Update(GameTime gameTime, LevelManager levelManager);
+        public abstract void Update(GameTime gameTime);
         
         public abstract Matrix GetTranslation();
         public abstract Matrix GetScale();

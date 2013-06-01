@@ -131,6 +131,7 @@
     <Compile Include="AI\PatrolAI.cs" />
     <Compile Include="AI\TargetedAI.cs" />
     <Compile Include="AnimatedTexture.cs" />
+    <Compile Include="Camera\CoopEscapeCamera.cs" />
     <Compile Include="HeroInfo.cs" />
     <Compile Include="Highscores.cs" />
     <Compile Include="PowerupIconRegenerating.cs" />

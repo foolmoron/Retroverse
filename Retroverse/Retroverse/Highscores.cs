@@ -127,9 +127,28 @@ namespace Retroverse
 
             currentHighscorePosition = HIGHSCORE_COUNT;
             if (RetroGame.NUM_PLAYERS == 1)
+            {
                 currentSoloHighscore = new HeroHighscore(RetroGame.getHeroes()[0]);
+                for (int i = 0; i < HIGHSCORE_COUNT; i++) //check for existing highscore for these players
+                    if (currentSoloHighscore.id == highscoresSolo[i].id && currentSoloHighscore.name == highscoresSolo[i].name && currentSoloHighscore.color == highscoresSolo[i].color)
+                    {
+                        highscoresSolo[i] = currentSoloHighscore;
+                        currentHighscorePosition = i;
+                        break;
+                    }
+            }
             else if (RetroGame.NUM_PLAYERS == 2)
+            {
                 currentCoopHighscore = new HeroHighscoreCoop(RetroGame.getHeroes()[0], RetroGame.getHeroes()[1]);
+                for (int i = 0; i < HIGHSCORE_COUNT; i++) //check for existing highscore for these players
+                    if (currentCoopHighscore.id1 == highscoresCoop[i].id1 && currentCoopHighscore.name1 == highscoresCoop[i].name1 && currentCoopHighscore.color1 == highscoresCoop[i].color1 &&
+                        currentCoopHighscore.id2 == highscoresCoop[i].id2 && currentCoopHighscore.name2 == highscoresCoop[i].name2 && currentCoopHighscore.color2 == highscoresCoop[i].color2)
+                    {
+                        highscoresCoop[i] = currentCoopHighscore;
+                        currentHighscorePosition = i;
+                        break;
+                    }
+            }
         }
 
         public static void Save()

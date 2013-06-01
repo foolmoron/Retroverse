@@ -45,10 +45,9 @@ namespace Retroverse
             scrollCamera(absoluteCenter, 100);
         }
 
-        public override void Update(GameTime gameTime, LevelManager levelManager)
+        public override void Update(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
-            Level[,] levels = levelManager.levels;
             scrolling = false;
             scrollCamera(seconds);
         }

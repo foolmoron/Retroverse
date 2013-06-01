@@ -45,14 +45,14 @@ namespace Retroverse
             targetZoom = 1f;
             position = new Vector2(absoluteCenter.X - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, absoluteCenter.Y - zoom * (Level.TEX_SIZE / 2) - (RetroGame.levelOffsetFromHUD) + Level.TILE_SIZE / 2);
             introFinished = false;
-            scrollCamera(absoluteCenter, 100);
+            scrollCameraToTarget(absoluteCenter, 100);
         }
 
-        public override void Update(GameTime gameTime, LevelManager levelManager)
+        public override void Update(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
             absoluteCenter = targetEntity.position;
-            scrollCamera(seconds);
+            scrollCameraToTarget(absoluteCenter, seconds);
         }
 
         public override Vector2 GetRelativeScreenPosition(Entity entityOnScreen)
@@ -63,12 +63,7 @@ namespace Retroverse
             return pos;
         }
 
-        private void scrollCamera(float seconds)
-        {
-            scrollCamera(absoluteCenter, seconds);
-        }
-
-        private void scrollCamera(Vector2 destination, float seconds)
+        protected void scrollCameraToTarget(Vector2 destination, float seconds)
         {
             targetPos = new Vector2(destination.X - zoom * (Level.TEX_SIZE / 2) + Level.TILE_SIZE / 2, destination.Y - zoom * (Level.TEX_SIZE / 2) - (RetroGame.levelOffsetFromHUD) + Level.TILE_SIZE / 2);
             

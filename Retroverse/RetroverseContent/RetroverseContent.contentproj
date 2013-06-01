@@ -948,6 +948,16 @@
       <Importer>TextureImporter</Importer>
       <Processor>LevelProcessor</Processor>
     </Compile>
+    <Compile Include="Levels\momin1.png">
+      <Name>momin1</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
+    <Compile Include="Levels\momin2.png">
+      <Name>momin2</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>LevelProcessor</Processor>
+    </Compile>
     <Content Include="nameprefixes.txt">
       <Name>nameprefixes</Name>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

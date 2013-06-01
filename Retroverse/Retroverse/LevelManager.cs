@@ -176,7 +176,20 @@ namespace Retroverse
                     Camera = arenaCamera;
                     break;
                 case CameraMode.Escape:
-                    EscapeCamera escapeCamera = new EscapeCamera(RetroGame.getMainLiveHero());
+                    EscapeCamera escapeCamera;
+                    if (RetroGame.NUM_PLAYERS == 1)
+                        escapeCamera = new EscapeCamera(RetroGame.getMainLiveHero());
+                    else //if (RetroGame.NUM_PLAYERS == 2)
+                    {
+                        int liveHeroes = 0;
+                        foreach(Hero hero in RetroGame.getHeroes())
+                            if (hero.Alive)
+                                liveHeroes++;
+                        if (liveHeroes == 1)
+                            escapeCamera = new EscapeCamera(RetroGame.getMainLiveHero());
+                        else
+                            escapeCamera = new CoopEscapeCamera(RetroGame.getHeroes()[0], RetroGame.getHeroes()[1]);
+                    }
                     escapeCamera.Initialize();
                     if (Camera != null)
                         escapeCamera.InitializeWithCamera(Camera);
@@ -272,7 +285,7 @@ namespace Retroverse
         public void UpdateArena(GameTime gameTime)
         {
             float seconds = gameTime.getSeconds();
-            Camera.Update(gameTime, this);
+            Camera.Update(gameTime);
             UpdateEscape(gameTime);
         }
 
@@ -348,7 +361,7 @@ namespace Retroverse
                 Camera.zoom -= currentZoomSpeed * seconds;
             else
                 Camera.zoom = Camera.targetZoom;
-            Camera.Update(gameTime, this);
+            Camera.Update(gameTime);
         }
 
         public void UpdateRetro(GameTime gameTime)
@@ -384,7 +397,7 @@ namespace Retroverse
             foreach (Hero hero in heroes)
                 hero.updateCurrentLevelAndTile();
             createAndRemoveLevels();
-            Camera.Update(gameTime, this);
+            Camera.Update(gameTime);
         }
 
         public void createSpecificLevelAt(LevelFragment fullLevelFragment, int xPos, int yPos)

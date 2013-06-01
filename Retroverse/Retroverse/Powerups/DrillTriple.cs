@@ -124,7 +124,7 @@ namespace Retroverse
                             drillingRight = nextLevel.grid[nextTileX, nextTileY + 2] == LevelContent.LevelTile.Wall;
                             drillOffsetRight = new Vector2(drillOffset.X, drillOffset.Y + 2 * Level.TILE_SIZE);
                         }
-                        if (nextTileY < LevelContent.LEVEL_SIZE - 1)
+                        if (nextTileY < Level.GRID_SIZE - 1)
                         {
                             drillingLeft = nextLevel.grid[nextTileX, nextTileY + 1] == LevelContent.LevelTile.Wall;
                             drillOffsetLeft = new Vector2(drillOffset.X, drillOffset.Y + Level.TILE_SIZE);

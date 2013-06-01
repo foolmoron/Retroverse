@@ -17,7 +17,7 @@ namespace Retroverse
 {
     public class RetroGame : Game
     {
-        public const string VERSION_NAME = "ALPHA 0.2.0b";
+        public const string VERSION_NAME = "ALPHA 0.2.0c";
 #if DEBUG
         public const bool DEBUG = true;
         public static readonly string VERSION = "Ver. " + VERSION_NAME + " [DEBUG " + ProjectBuildDate.RetrieveLinkerTimestamp().ToShortDateString() + "]";
@@ -32,6 +32,7 @@ namespace Retroverse
              * here, separated by commas.  Ex:
              * "rachel1", "cornerTL", "horizBot"
              */
+            "momin1", "momin2"
         };
         public static List<LevelFragment> testFragmentsFull = new List<LevelFragment>();
         public static List<LevelFragment> testFragmentsHalfHorizontal = new List<LevelFragment>();
@@ -296,6 +297,8 @@ namespace Retroverse
                         break;
                 }
                 LEVEL_COLORS[content.name] = content.color;
+                if (content.color == Color.White)
+                    Console.Out.WriteLine(content.name + " = white");
                 if (!(content.name.Contains("intro") || content.name.Contains("store")))
                 {
                     levelFragmentsForCurrentTypeOfLevel[content.name] = new LevelFragment(content, GraphicsDevice);

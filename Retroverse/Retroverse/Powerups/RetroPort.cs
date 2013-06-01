@@ -23,7 +23,7 @@ namespace Retroverse
             Icon = TextureManager.Get("retroicon1"); //filename for this powerup's icon
             DrawBeforeHero = true; //should the powerup's effects be drawn before the sprite of the hero, or above? 
             GemCost = COST_EXPENSIVE; //how many gems does it take to buy this from the store?
-            TintColor = Color.LightSlateGray; //what color should this powerup's icon and related effects be?
+            TintColor = new Color(25, 25, 25); //what color should this powerup's icon and related effects be?
             Description = "Rewinds the game\nfor a short time"; //give a short description (with appropriate newlines) of the powerup, for display to the player
         }
 

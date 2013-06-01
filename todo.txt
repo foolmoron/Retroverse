@@ -25,6 +25,14 @@ X Credits
 X Continue menu name/number scaling
 X Sand/Prisoner collect sound
 X PowerupIcons don't update in RetroPort mode
+X Triple drill level size glitch
+X Multiple highscores when restarting
+X Co-op camera
+X Flash when hit
+X Too few horizontal half levels
+X Bunch of white levels
+X Reverse color unreadable on gray
+
 - Triple drill across levels (maybe)
 - Sound panning (maybe)
 - Scrolling list of prisoners saved (maybe)
