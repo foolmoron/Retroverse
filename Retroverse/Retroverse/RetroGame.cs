@@ -17,7 +17,7 @@ namespace Retroverse
 {
     public class RetroGame : Game
     {
-        public const string VERSION_NAME = "ALPHA 0.2.0c";
+        public const string VERSION_NAME = "ALPHA 0.2.0d";
 #if DEBUG
         public const bool DEBUG = true;
         public static readonly string VERSION = "Ver. " + VERSION_NAME + " [DEBUG " + ProjectBuildDate.RetrieveLinkerTimestamp().ToShortDateString() + "]";
