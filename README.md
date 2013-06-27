@@ -1,6 +1,6 @@
 Retroverse
 =========
-Download: https://www.dropbox.com/sh/egbp5gfgg416ywp/iiSobgvYvX
+http://www.desura.com/games/retroverse
 
 A 2D XNA-based arcadey action adventure game where you escape a prison while collecting gems, killing guards, acquiring powerups, and saving other prisoners along the way.
 Full 360 controller integration!
